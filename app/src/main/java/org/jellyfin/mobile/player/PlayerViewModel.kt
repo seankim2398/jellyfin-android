@@ -2,6 +2,7 @@ package org.jellyfin.mobile.player
 
 import android.annotation.SuppressLint
 import android.app.Application
+import android.content.Context
 import android.media.AudioAttributes
 import android.media.AudioManager
 import android.media.session.MediaSession
@@ -26,6 +27,10 @@ import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
 import androidx.media3.exoplayer.source.MediaSource
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.exoplayer.util.EventLogger
+import androidx.media3.exoplayer.text.TextRenderer
+import android.os.Looper
+import androidx.media3.exoplayer.Renderer
+import androidx.media3.exoplayer.text.TextOutput
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -88,6 +93,7 @@ import org.koin.core.component.get
 import org.koin.core.component.inject
 import org.koin.core.qualifier.named
 import timber.log.Timber
+import java.util.ArrayList
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -225,8 +231,14 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
      * Setup a new [ExoPlayer] for video playback, register callbacks and set attributes
      */
     fun setupPlayer() {
-        val renderersFactory = DefaultRenderersFactory(getApplication()).apply {
-            setEnableDecoderFallback(true) // Fallback only works if initialization fails, not decoding at playback time
+        val renderersFactory = object : DefaultRenderersFactory(getApplication()) {
+            override fun buildTextRenderers(context: Context, output: TextOutput, outputLooper: Looper, extensionRendererMode: Int, out: ArrayList<Renderer>) {
+                out.add(TextRenderer(output, outputLooper).apply {
+                    experimentalSetLegacyDecodingEnabled(true)
+                })
+            }
+        }.apply {
+            setEnableDecoderFallback(true)
             val rendererMode = when {
                 fallbackPreferExtensionRenderers -> DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER
                 else -> DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON

@@ -161,6 +161,7 @@ val applicationModule = module {
             )
         }
         DefaultMediaSourceFactory(get<CacheDataSource.Factory>(), extractorsFactory)
+            .experimentalParseSubtitlesDuringExtraction(false)
     }
     single { ProgressiveMediaSource.Factory(get<CacheDataSource.Factory>()) }
     single { HlsMediaSource.Factory(get<CacheDataSource.Factory>()) }
