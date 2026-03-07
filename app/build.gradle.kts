@@ -54,6 +54,7 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             aaptOptions.cruncherEnabled = false
+            applicationIdSuffix = ".dev"
 
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             signingConfig = releaseSigningConfig
