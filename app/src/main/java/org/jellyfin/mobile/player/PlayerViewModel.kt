@@ -245,12 +245,25 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
             }
             setExtensionRendererMode(rendererMode)
             setMediaCodecSelector { mimeType, requiresSecureDecoder, requiresTunnelingDecoder ->
+                // For Dolby Vision, first try native DV decoders.
+                // If none exist (e.g. Pixel 8 Pro has no native DV decoder),
+                // fall back to HEVC so Profile 7 and others play instead of black screening.
+                val effectiveMimeType = if (mimeType == MimeTypes.VIDEO_DOLBY_VISION) {
+                    val dvDecoders = MediaCodecSelector.DEFAULT.getDecoderInfos(
+                        mimeType,
+                        requiresSecureDecoder,
+                        requiresTunnelingDecoder,
+                    )
+                    if (dvDecoders.isNotEmpty()) mimeType else MimeTypes.VIDEO_H265
+                } else {
+                    mimeType
+                }
+
                 val decoderInfoList = MediaCodecSelector.DEFAULT.getDecoderInfos(
-                    mimeType,
+                    effectiveMimeType,
                     requiresSecureDecoder,
                     requiresTunnelingDecoder,
                 )
-                // Allow decoder selection only for video track
                 if (!MimeTypes.isVideo(mimeType)) {
                     return@setMediaCodecSelector decoderInfoList
                 }
@@ -259,7 +272,6 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
                     DecoderType.SOFTWARE -> decoderInfoList.filterNot(MediaCodecInfo::hardwareAccelerated)
                     else -> decoderInfoList
                 }
-                // Update the decoderType based on the first decoder selected
                 filteredDecoderList.firstOrNull()?.let { decoder ->
                     val decoderType = when {
                         decoder.hardwareAccelerated -> DecoderType.HARDWARE
@@ -267,7 +279,6 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
                     }
                     _decoderType.postValue(decoderType)
                 }
-
                 filteredDecoderList
             }
         }

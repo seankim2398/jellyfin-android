@@ -145,29 +145,6 @@ class DeviceProfileBuilder(
             else -> getSubtitleProfiles(EXO_EMBEDDED_SUBTITLES, EXO_EXTERNAL_SUBTITLES)
         }
 
-        codecProfiles.add(
-            CodecProfile(
-                type = CodecType.VIDEO,
-                codec = "hevc",
-                container = null,
-                applyConditions = emptyList(),
-                conditions = listOf(
-                    ProfileCondition(
-                        condition = ProfileConditionType.NOT_EQUALS,
-                        property = ProfileConditionValue.VIDEO_RANGE_TYPE,
-                        value = "DOVIWithEL",
-                        isRequired = false,
-                    ),
-                    ProfileCondition(
-                        condition = ProfileConditionType.NOT_EQUALS,
-                        property = ProfileConditionValue.VIDEO_RANGE_TYPE,
-                        value = "DOVIWithELHDR10Plus",
-                        isRequired = false,
-                    ),
-                ),
-            ),
-        )
-
         return DeviceProfile(
             name = Constants.APP_INFO_NAME,
             directPlayProfiles = directPlayProfiles,
