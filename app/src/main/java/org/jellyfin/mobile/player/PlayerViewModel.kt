@@ -18,6 +18,7 @@ import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.Clock
+import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.analytics.DefaultAnalyticsCollector
@@ -40,6 +41,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.jellyfin.mobile.BuildConfig
 import org.jellyfin.mobile.R
+import org.jellyfin.mobile.app.AppPreferences
 import org.jellyfin.mobile.app.PLAYER_EVENT_CHANNEL
 import org.jellyfin.mobile.player.interaction.PlayerEvent
 import org.jellyfin.mobile.player.interaction.PlayerLifecycleObserver
@@ -106,6 +108,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
     private val hlsSegmentApi: HlsSegmentApi = apiClient.hlsSegmentApi
     private val userApi: UserApi = apiClient.userApi
 
+    private val appPreferences: AppPreferences by inject()
     private val lifecycleObserver = PlayerLifecycleObserver(this)
     private val audioManager: AudioManager by lazy { getApplication<Application>().getSystemService()!! }
     val notificationHelper: PlayerNotificationHelper by lazy { PlayerNotificationHelper(this) }
@@ -231,14 +234,32 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
      * Setup a new [ExoPlayer] for video playback, register callbacks and set attributes
      */
     fun setupPlayer() {
+        @Suppress("MagicNumber")
+        val loadControl = when (appPreferences.exoPlayerNetworkBuffer) {
+            Constants.NETWORK_BUFFER_LARGE -> DefaultLoadControl.Builder()
+                .setBufferDurationsMs(50_000, 120_000, 2_500, 5_000)
+                .build()
+            Constants.NETWORK_BUFFER_EXTRA_LARGE -> DefaultLoadControl.Builder()
+                .setBufferDurationsMs(80_000, 240_000, 5_000, 10_000)
+                .build()
+            else -> DefaultLoadControl()
+        }
         val renderersFactory = object : DefaultRenderersFactory(getApplication()) {
-            override fun buildTextRenderers(context: Context, output: TextOutput, outputLooper: Looper, extensionRendererMode: Int, out: ArrayList<Renderer>) {
-                out.add(TextRenderer(output, outputLooper).apply {
-                    experimentalSetLegacyDecodingEnabled(true)
-                })
+            override fun buildTextRenderers(
+                context: Context,
+                output: TextOutput,
+                outputLooper: Looper,
+                extensionRendererMode: Int,
+                out: ArrayList<Renderer>,
+            ) {
+                out.add(
+                    TextRenderer(output, outputLooper).apply {
+                        experimentalSetLegacyDecodingEnabled(true)
+                    },
+                )
             }
         }.apply {
-            setEnableDecoderFallback(true)
+            setEnableDecoderFallback(true) // Fallback only works if initialization fails, not decoding at playback time
             val rendererMode = when {
                 fallbackPreferExtensionRenderers -> DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER
                 else -> DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON
@@ -286,6 +307,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
             setUsePlatformDiagnostics(false)
             setTrackSelector(trackSelector)
             setAnalyticsCollector(analyticsCollector)
+            setLoadControl(loadControl)
         }.build().apply {
             addListener(this@PlayerViewModel)
             applyDefaultAudioAttributes(C.AUDIO_CONTENT_TYPE_MOVIE)
