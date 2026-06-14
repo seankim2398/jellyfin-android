@@ -24,8 +24,6 @@ class DeviceProfileBuilder(
     private val supportedAudioCodecs: Array<Array<String>>
     private val videoCodecsProfiles: Map<String, Set<String>>
 
-    private val transcodingProfiles: List<TranscodingProfile>
-
     init {
         require(
             SUPPORTED_CONTAINER_FORMATS.size == AVAILABLE_VIDEO_CODECS.size && SUPPORTED_CONTAINER_FORMATS.size == AVAILABLE_AUDIO_CODECS.size,
@@ -72,33 +70,6 @@ class DeviceProfileBuilder(
             }.toTypedArray()
         }
         videoCodecsProfiles = videoCodecs.entries.associate { (k, v) -> k to v.profiles }
-
-        transcodingProfiles = listOf(
-            TranscodingProfile(
-                type = DlnaProfileType.VIDEO,
-                container = "ts",
-                videoCodec = "h264",
-                audioCodec = "mp1,mp2,mp3,aac,ac3,eac3,dts,mlp,truehd",
-                protocol = MediaStreamProtocol.HLS,
-                conditions = emptyList(),
-            ),
-            TranscodingProfile(
-                type = DlnaProfileType.VIDEO,
-                container = "mkv",
-                videoCodec = "h264",
-                audioCodec = AVAILABLE_AUDIO_CODECS[SUPPORTED_CONTAINER_FORMATS.indexOf("mkv")].joinToString(","),
-                protocol = MediaStreamProtocol.HLS,
-                conditions = emptyList(),
-            ),
-            TranscodingProfile(
-                type = DlnaProfileType.AUDIO,
-                container = "mp3",
-                videoCodec = "",
-                audioCodec = "mp3",
-                protocol = MediaStreamProtocol.HTTP,
-                conditions = emptyList(),
-            ),
-        )
     }
 
     fun getDeviceProfile(): DeviceProfile {
@@ -148,7 +119,7 @@ class DeviceProfileBuilder(
         return DeviceProfile(
             name = Constants.APP_INFO_NAME,
             directPlayProfiles = directPlayProfiles,
-            transcodingProfiles = transcodingProfiles,
+            transcodingProfiles = buildTranscodingProfiles(),
             containerProfiles = containerProfiles,
             codecProfiles = codecProfiles,
             subtitleProfiles = subtitleProfiles,
@@ -157,6 +128,67 @@ class DeviceProfileBuilder(
             musicStreamingTranscodingBitrate = MAX_MUSIC_TRANSCODING_BITRATE,
         )
     }
+
+    /**
+     * Orders a list of candidate transcode video codecs based on the user's preferred codec.
+     *
+     * When the preference is "auto", the candidate list is used as-is, i.e. in its default
+     * priority order (see [DEFAULT_VIDEO_CODEC_PRIORITY]: HEVC first). When a specific codec
+     * is chosen and is among the candidates, it is floated to the front and the rest keep
+     * their default order. Returns a comma-separated string for a [TranscodingProfile]'s
+     * videoCodec field.
+     *
+     * Note on HEVC-first default: on Intel QSV hardware (hevc_qsv vs av1_qsv), HEVC matches
+     * or beats AV1 on quality-per-bitrate at useful quality levels, encodes faster, has wider
+     * client decode support, and muxes into MPEG-TS cleanly (AV1 forces fMP4). AV1 only edges
+     * ahead at very low bitrates. AV1 remains selectable for that case.
+     */
+    private fun orderVideoCodecs(candidates: List<String>): String {
+        val preferred = appPreferences.preferredVideoCodec
+        val ordered = if (preferred != Constants.VIDEO_CODEC_AUTO && preferred in candidates) {
+            listOf(preferred) + candidates.filter { it != preferred }
+        } else {
+            candidates
+        }
+        return ordered.joinToString(",")
+    }
+
+    private fun buildTranscodingProfiles(): List<TranscodingProfile> = listOf(
+        // fMP4 (HLS) — full codec set; HEVC preferred by default, AV1 selectable
+        TranscodingProfile(
+            type = DlnaProfileType.VIDEO,
+            container = "mp4",
+            videoCodec = orderVideoCodecs(DEFAULT_VIDEO_CODEC_PRIORITY),
+            audioCodec = "mp1,mp2,mp3,aac,ac3,eac3,dts,mlp,truehd",
+            protocol = MediaStreamProtocol.HLS,
+            conditions = emptyList(),
+        ),
+        // MPEG-TS (HLS) — no AV1 (TS can't mux AV1); HEVC preferred over H264
+        TranscodingProfile(
+            type = DlnaProfileType.VIDEO,
+            container = "ts",
+            videoCodec = orderVideoCodecs(listOf(Constants.VIDEO_CODEC_HEVC, Constants.VIDEO_CODEC_H264)),
+            audioCodec = "mp1,mp2,mp3,aac,ac3,eac3,dts,mlp,truehd",
+            protocol = MediaStreamProtocol.HLS,
+            conditions = emptyList(),
+        ),
+        TranscodingProfile(
+            type = DlnaProfileType.VIDEO,
+            container = "mkv",
+            videoCodec = orderVideoCodecs(DEFAULT_VIDEO_CODEC_PRIORITY),
+            audioCodec = AVAILABLE_AUDIO_CODECS[SUPPORTED_CONTAINER_FORMATS.indexOf("mkv")].joinToString(","),
+            protocol = MediaStreamProtocol.HLS,
+            conditions = emptyList(),
+        ),
+        TranscodingProfile(
+            type = DlnaProfileType.AUDIO,
+            container = "mp3",
+            videoCodec = "",
+            audioCodec = "mp3",
+            protocol = MediaStreamProtocol.HTTP,
+            conditions = emptyList(),
+        ),
+    )
 
     private fun generateCodecProfile(
         container: String,
@@ -216,6 +248,17 @@ class DeviceProfileBuilder(
 
     companion object {
         private const val EXTERNAL_PLAYER_PROFILE_NAME = Constants.APP_INFO_NAME + " External Player"
+
+        /**
+         * Default priority order for transcode video codecs when the user preference is "auto".
+         * HEVC leads based on measured hevc_qsv vs av1_qsv performance on Intel hardware
+         * (see [orderVideoCodecs]). H264 last as the universal fallback.
+         */
+        private val DEFAULT_VIDEO_CODEC_PRIORITY = listOf(
+            Constants.VIDEO_CODEC_HEVC,
+            Constants.VIDEO_CODEC_AV1,
+            Constants.VIDEO_CODEC_H264,
+        )
 
         /**
          * List of container formats supported by ExoPlayer

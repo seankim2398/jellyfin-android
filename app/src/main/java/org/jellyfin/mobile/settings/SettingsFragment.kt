@@ -46,6 +46,7 @@ class SettingsFragment : Fragment(), BackPressInterceptor {
     private lateinit var directPlayAssPreference: Preference
     private lateinit var networkBufferPreference: Preference
     private lateinit var externalPlayerChoicePreference: Preference
+    private lateinit var preferredVideoCodecPreference: Preference
 
     init {
         Preference.Config.titleMaxLines = 2
@@ -110,6 +111,7 @@ class SettingsFragment : Fragment(), BackPressInterceptor {
                 pressSpeedUpPreference.enabled = selection == VideoPlayerType.EXO_PLAYER
                 backgroundAudioPreference.enabled = selection == VideoPlayerType.EXO_PLAYER
                 directPlayAssPreference.enabled = selection == VideoPlayerType.EXO_PLAYER
+                preferredVideoCodecPreference.enabled = selection == VideoPlayerType.EXO_PLAYER
                 networkBufferPreference.enabled = selection == VideoPlayerType.EXO_PLAYER
                 externalPlayerChoicePreference.enabled = selection == VideoPlayerType.EXTERNAL_PLAYER
             }
@@ -169,6 +171,18 @@ class SettingsFragment : Fragment(), BackPressInterceptor {
         networkBufferPreference = singleChoice(Constants.PREF_EXOPLAYER_NETWORK_BUFFER, networkBufferOptions) {
             titleRes = R.string.pref_exoplayer_network_buffer
             initialSelection = Constants.NETWORK_BUFFER_AUTO
+            enabled = appPreferences.videoPlayerType == VideoPlayerType.EXO_PLAYER
+        }
+
+        val preferredVideoCodecOptions = listOf(
+            SelectionItem(Constants.VIDEO_CODEC_AUTO, R.string.preferred_video_codec_auto, R.string.preferred_video_codec_auto_description),
+            SelectionItem(Constants.VIDEO_CODEC_AV1, R.string.preferred_video_codec_av1, R.string.preferred_video_codec_av1_description),
+            SelectionItem(Constants.VIDEO_CODEC_HEVC, R.string.preferred_video_codec_hevc, R.string.preferred_video_codec_hevc_description),
+            SelectionItem(Constants.VIDEO_CODEC_H264, R.string.preferred_video_codec_h264, R.string.preferred_video_codec_h264_description),
+        )
+        preferredVideoCodecPreference = singleChoice(Constants.PREF_PREFERRED_VIDEO_CODEC, preferredVideoCodecOptions) {
+            titleRes = R.string.pref_preferred_video_codec
+            initialSelection = Constants.VIDEO_CODEC_AUTO
             enabled = appPreferences.videoPlayerType == VideoPlayerType.EXO_PLAYER
         }
 
