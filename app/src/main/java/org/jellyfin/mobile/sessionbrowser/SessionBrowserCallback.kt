@@ -1,6 +1,8 @@
 package org.jellyfin.mobile.sessionbrowser
 
+import android.content.ContentResolver
 import android.content.Context
+import android.net.Uri
 import android.os.Bundle
 import androidx.core.os.bundleOf
 import androidx.media3.common.MediaItem
@@ -15,13 +17,18 @@ import com.google.common.collect.ImmutableList
 import com.google.common.util.concurrent.ListenableFuture
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.guava.await
 import kotlinx.coroutines.guava.future
 import kotlinx.serialization.json.Json
 import org.jellyfin.mobile.R
 import org.jellyfin.mobile.sessionbrowser.page.AlbumLibraryPage
+import org.jellyfin.mobile.sessionbrowser.page.AlbumsAlphaLibraryPage
 import org.jellyfin.mobile.sessionbrowser.page.AlbumsLibraryPage
 import org.jellyfin.mobile.sessionbrowser.page.ArtistLibraryPage
+import org.jellyfin.mobile.sessionbrowser.page.ArtistsAlphaLibraryPage
 import org.jellyfin.mobile.sessionbrowser.page.ArtistsLibraryPage
+import org.jellyfin.mobile.sessionbrowser.page.AudioBooksAlphaLibraryPage
+import org.jellyfin.mobile.sessionbrowser.page.AudioBooksLibraryPage
 import org.jellyfin.mobile.sessionbrowser.page.FavoritesLibraryPage
 import org.jellyfin.mobile.sessionbrowser.page.GenreLibraryPage
 import org.jellyfin.mobile.sessionbrowser.page.GenresLibraryPage
@@ -36,8 +43,6 @@ import org.jellyfin.sdk.api.client.ApiClient
 import org.jellyfin.sdk.api.client.extensions.universalAudioApi
 import org.jellyfin.sdk.api.client.extensions.userLibraryApi
 import org.jellyfin.sdk.model.api.MediaStreamProtocol
-import org.jellyfin.sdk.model.serializer.toUUID
-import org.jellyfin.sdk.model.serializer.toUUIDOrNull
 import timber.log.Timber
 
 @Suppress("InjectDispatcher")
@@ -53,8 +58,12 @@ class SessionBrowserCallback(
         RootLibraryPage(api),
         UserViewLibraryPage(context),
         AlbumsLibraryPage(api),
+        AlbumsAlphaLibraryPage,
         AlbumLibraryPage(api),
+        AudioBooksLibraryPage(api),
+        AudioBooksAlphaLibraryPage,
         ArtistsLibraryPage(api),
+        ArtistsAlphaLibraryPage,
         ArtistLibraryPage(api),
         FavoritesLibraryPage(api),
         GenresLibraryPage(api),
@@ -63,12 +72,13 @@ class SessionBrowserCallback(
         PlaylistLibraryPage(api),
         RecentLibraryPage(api),
         SuggestedLibraryPage(api),
-        SearchLibraryPage(api),
+        SearchLibraryPage(context, api),
     )
 
     private val LibraryRoute.page get() = pages.firstOrNull { page -> page.route == this::class }
 
     private fun LibraryPageElement.Item.toMediaItem(
+        route: LibraryRoute,
         groupTitle: String? = null,
     ): MediaItem = MediaItem.Builder().apply {
         val extras = bundleOf()
@@ -85,9 +95,9 @@ class SessionBrowserCallback(
             }
             extras.putInt(MediaConstants.EXTRAS_KEY_CONTENT_STYLE_BROWSABLE, contentStyle)
             extras.putInt(MediaConstants.EXTRAS_KEY_CONTENT_STYLE_PLAYABLE, contentStyle)
-            setMediaId(Json.encodeToString(action.route))
+            setMediaId(Json.encodeToString<LibraryMediaId>(LibraryMediaId.Route(action.route)))
         } else if (action is LibraryItemAction.Play) {
-            setMediaId(action.item.id.toString())
+            setMediaId(Json.encodeToString<LibraryMediaId>(LibraryMediaId.Item(action.item.id, route)))
         }
 
         setMediaMetadata(
@@ -97,55 +107,55 @@ class SessionBrowserCallback(
                 setAlbumTitle(album)
                 setIsBrowsable(action is LibraryItemAction.Navigate)
                 setIsPlayable(action is LibraryItemAction.Play)
-                if (image != null) setArtworkUri(image)
+
+                if (image != null) {
+                    setArtworkUri(image)
+                } else if (iconRes != null) {
+                    setArtworkUri(iconRes.asResourceUri())
+                }
 
                 setExtras(extras)
             }.build(),
         )
     }.build()
 
-    private fun List<LibraryPageElement>.toMediaItems(): List<MediaItem> = flatMap { element ->
+    private fun Int.asResourceUri() = Uri.Builder()
+        .scheme(ContentResolver.SCHEME_ANDROID_RESOURCE)
+        .authority(context.resources.getResourcePackageName(this))
+        .appendPath(context.resources.getResourceTypeName(this))
+        .appendPath(context.resources.getResourceEntryName(this))
+        .build()
+
+    private fun List<LibraryPageElement>.toMediaItems(route: LibraryRoute): List<MediaItem> = flatMap { element ->
         when (element) {
-            is LibraryPageElement.Group -> element.items.map { item -> item.toMediaItem(groupTitle = element.title) }
-            is LibraryPageElement.Item -> listOf(element.toMediaItem())
+            is LibraryPageElement.Group -> element.items.map { item ->
+                item.toMediaItem(
+                    route = route,
+                    groupTitle = element.title,
+                )
+            }
+            is LibraryPageElement.Item -> listOf(element.toMediaItem(route))
         }
     }
 
-    private fun createPageResult(
-        route: LibraryRoute,
-        params: LibraryParams? = null,
-    ): LibraryResult<MediaItem> {
-        val page = route.page
-
-        return if (page == null) {
-            LibraryResult.ofError(
-                SessionError(SessionError.ERROR_NOT_SUPPORTED, context.getString(R.string.media_service_unknown_page)),
-                params ?: LibraryParams.Builder().build(),
-            )
-        } else {
-            LibraryResult.ofItem(
-                MediaItem.Builder().apply {
-                    val extras = Bundle()
-                    val contentStyle = when (page.grid) {
-                        true -> MediaConstants.EXTRAS_VALUE_CONTENT_STYLE_GRID_ITEM
-                        false -> MediaConstants.EXTRAS_VALUE_CONTENT_STYLE_LIST_ITEM
-                    }
-                    extras.putInt(MediaConstants.EXTRAS_KEY_CONTENT_STYLE_BROWSABLE, contentStyle)
-                    extras.putInt(MediaConstants.EXTRAS_KEY_CONTENT_STYLE_PLAYABLE, contentStyle)
-
-                    setMediaId(Json.encodeToString(route))
-                    setMediaMetadata(
-                        MediaMetadata.Builder().apply {
-                            setIsBrowsable(true)
-                            setIsPlayable(false)
-                            setExtras(extras)
-                        }.build(),
-                    )
-                }.build(),
-                params,
-            )
+    private fun createPageMediaItem(route: LibraryRoute, page: LibraryPage<*> = route.page!!) = MediaItem.Builder().apply {
+        val extras = Bundle()
+        val contentStyle = when (page.grid) {
+            true -> MediaConstants.EXTRAS_VALUE_CONTENT_STYLE_GRID_ITEM
+            false -> MediaConstants.EXTRAS_VALUE_CONTENT_STYLE_LIST_ITEM
         }
-    }
+        extras.putInt(MediaConstants.EXTRAS_KEY_CONTENT_STYLE_BROWSABLE, contentStyle)
+        extras.putInt(MediaConstants.EXTRAS_KEY_CONTENT_STYLE_PLAYABLE, contentStyle)
+
+        setMediaId(Json.encodeToString<LibraryMediaId>(LibraryMediaId.Route(route)))
+        setMediaMetadata(
+            MediaMetadata.Builder().apply {
+                setIsBrowsable(true)
+                setIsPlayable(false)
+                setExtras(extras)
+            }.build(),
+        )
+    }.build()
 
     private suspend fun createPageContentResult(
         route: LibraryRoute,
@@ -169,7 +179,7 @@ class SessionBrowserCallback(
             route,
             pageIndex * pageSize,
             minOf(pageSize, MAX_PAGE_SIZE),
-        )?.toMediaItems()
+        )?.toMediaItems(route)
 
         return if (items == null) {
             LibraryResult.ofError(
@@ -192,7 +202,17 @@ class SessionBrowserCallback(
         }
 
         Timber.d("onGetLibraryRoot $session $browser $params $route")
-        createPageResult(route, params)
+
+        val page = route.page
+
+        if (page == null) {
+            LibraryResult.ofError(
+                SessionError(SessionError.ERROR_NOT_SUPPORTED, context.getString(R.string.media_service_unknown_page)),
+                params ?: LibraryParams.Builder().build(),
+            )
+        } else {
+            LibraryResult.ofItem(createPageMediaItem(route, page), params)
+        }
     }
 
     override fun onGetChildren(
@@ -203,15 +223,17 @@ class SessionBrowserCallback(
         pageSize: Int,
         params: LibraryParams?,
     ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> = CoroutineScope(Dispatchers.IO).future {
-        val route = runCatching { Json.decodeFromString<LibraryRoute>(parentId) }.getOrNull()
         Timber.d("onGetChildren $parentId $page $pageSize $params")
 
-        if (route == null) {
+        val libraryMediaId = runCatching { Json.decodeFromString<LibraryMediaId>(parentId) }.getOrNull()
+        Timber.d("onGetChildren $libraryMediaId")
+
+        if (libraryMediaId !is LibraryMediaId.Route) {
             LibraryResult.ofError(
                 SessionError(SessionError.ERROR_BAD_VALUE, context.getString(R.string.media_service_unknown_page)),
             )
         } else {
-            createPageContentResult(route, params, page, pageSize)
+            createPageContentResult(libraryMediaId.route, params, page, pageSize)
         }
     }
 
@@ -247,14 +269,31 @@ class SessionBrowserCallback(
     ): ListenableFuture<LibraryResult<MediaItem>> = CoroutineScope(Dispatchers.IO).future {
         Timber.d("onGetItem $session $browser $mediaId")
 
-        val itemId = mediaId.toUUIDOrNull()
-        if (itemId == null) {
-            LibraryResult.ofError(
+        val libraryMediaId = runCatching { Json.decodeFromString<LibraryMediaId>(mediaId) }.getOrNull()
+        when (libraryMediaId) {
+            is LibraryMediaId.Item -> {
+                val item by api.userLibraryApi.getItem(itemId = libraryMediaId.itemId)
+                LibraryResult.ofItem(LibraryPageElement.baseItem(api, item).toMediaItem(libraryMediaId.route), null)
+            }
+
+            is LibraryMediaId.Route -> {
+                val page = libraryMediaId.route.page
+
+                if (page == null) {
+                    LibraryResult.ofError(
+                        SessionError(
+                            SessionError.ERROR_NOT_SUPPORTED,
+                            context.getString(R.string.media_service_unknown_page),
+                        ),
+                    )
+                } else {
+                    LibraryResult.ofItem(createPageMediaItem(libraryMediaId.route, page), null)
+                }
+            }
+
+            null -> LibraryResult.ofError(
                 SessionError(SessionError.ERROR_BAD_VALUE, context.getString(R.string.media_service_invalid_id)),
             )
-        } else {
-            val item by api.userLibraryApi.getItem(itemId = mediaId.toUUID())
-            LibraryResult.ofItem(LibraryPageElement.baseItem(api, item).toMediaItem(), null)
         }
     }
 
@@ -265,9 +304,12 @@ class SessionBrowserCallback(
     ): ListenableFuture<List<MediaItem>> = CoroutineScope(Dispatchers.IO).future {
         Timber.d("onAddMediaItems $mediaSession $controller $mediaItems")
 
-        mediaItems.map {
+        mediaItems.mapNotNull {
+            val libraryMediaId = runCatching { Json.decodeFromString<LibraryMediaId>(it.mediaId) }.getOrNull()
+            if (libraryMediaId !is LibraryMediaId.Item) return@mapNotNull null
+
             val playbackUri = api.universalAudioApi.getUniversalAudioStreamUrl(
-                itemId = it.mediaId.toUUID(),
+                itemId = libraryMediaId.itemId,
                 deviceId = api.deviceInfo.id,
                 maxStreamingBitrate = 140000000,
                 container = listOf(
@@ -288,7 +330,50 @@ class SessionBrowserCallback(
                 enableRemoteMedia = true,
             )
 
-            it.buildUpon().setUri(playbackUri + "&ApiKey=${api.accessToken}").build()
+            it.buildUpon().apply {
+                setUri(playbackUri + "&ApiKey=${api.accessToken}")
+            }.build()
         }
+    }
+
+    override fun onSetMediaItems(
+        mediaSession: MediaSession,
+        controller: MediaSession.ControllerInfo,
+        mediaItems: List<MediaItem>,
+        startIndex: Int,
+        startPositionMs: Long,
+    ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> = CoroutineScope(Dispatchers.IO).future {
+        Timber.d("onSetMediaItems $mediaSession $controller $mediaItems $startIndex $startPositionMs")
+
+        var expandedItems = mediaItems
+        var newStartIndex = startIndex
+
+        // Expand media item to full playlist
+        if (mediaItems.size == 1) {
+            val libraryMediaId = runCatching {
+                Json.decodeFromString<LibraryMediaId>(
+                    mediaItems.first().mediaId,
+                )
+            }.getOrNull()
+
+            if (libraryMediaId is LibraryMediaId.Item) {
+                val page = libraryMediaId.route.page
+
+                @Suppress("UNCHECKED_CAST")
+                expandedItems = (page as? LibraryPage<LibraryRoute>)
+                    ?.getContent(libraryMediaId.route, startIndex, MAX_PAGE_SIZE)
+                    ?.toMediaItems(libraryMediaId.route)
+                    .orEmpty()
+
+                newStartIndex = expandedItems
+                    .indexOfFirst {
+                        (Json.decodeFromString<LibraryMediaId>(it.mediaId) as? LibraryMediaId.Item)?.itemId == libraryMediaId.itemId
+                    }
+                    .coerceAtLeast(0)
+            }
+        }
+
+        expandedItems = onAddMediaItems(mediaSession, controller, expandedItems).await()
+        MediaSession.MediaItemsWithStartPosition(expandedItems, newStartIndex, startPositionMs)
     }
 }

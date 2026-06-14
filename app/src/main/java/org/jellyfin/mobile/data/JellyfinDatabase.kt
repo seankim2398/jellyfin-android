@@ -1,5 +1,6 @@
 package org.jellyfin.mobile.data
 
+import android.net.Uri
 import androidx.room.AutoMigration
 import androidx.room.Database
 import androidx.room.RenameTable
@@ -8,12 +9,15 @@ import androidx.room.TypeConverter
 import androidx.room.TypeConverters
 import androidx.room.migration.AutoMigrationSpec
 import androidx.sqlite.db.SupportSQLiteDatabase
+import kotlinx.serialization.json.Json
 import org.jellyfin.mobile.data.dao.DownloadDao
 import org.jellyfin.mobile.data.dao.ServerDao
 import org.jellyfin.mobile.data.dao.UserDao
 import org.jellyfin.mobile.data.entity.DownloadEntity
+import org.jellyfin.mobile.data.entity.DownloadFileEntity
 import org.jellyfin.mobile.data.entity.ServerEntity
 import org.jellyfin.mobile.data.entity.UserEntity
+import org.jellyfin.sdk.model.api.BaseItemDto
 import org.jellyfin.sdk.model.serializer.toUUIDOrNull
 import timber.log.Timber
 import java.util.UUID
@@ -23,11 +27,13 @@ import java.util.UUID
         ServerEntity::class,
         UserEntity::class,
         DownloadEntity::class,
+        DownloadFileEntity::class,
     ],
-    version = 4,
+    version = 6,
     autoMigrations = [
         AutoMigration(from = 2, to = 3),
         AutoMigration(from = 3, to = 4, spec = JellyfinDatabase.MigrateV4::class),
+        AutoMigration(from = 5, to = 6),
     ],
 )
 @TypeConverters(JellyfinDatabase.Converters::class)
@@ -44,6 +50,18 @@ abstract class JellyfinDatabase : RoomDatabase() {
 
         @TypeConverter
         fun toUuid(value: String?): UUID? = value?.toUUIDOrNull()
+
+        @TypeConverter
+        fun fromBaseItemDto(baseItem: BaseItemDto?): String? = baseItem?.let(Json::encodeToString)
+
+        @TypeConverter
+        fun toBaseItemDto(json: String?): BaseItemDto? = json?.let(Json::decodeFromString)
+
+        @TypeConverter
+        fun fromUri(uri: Uri?): String? = uri?.toString()
+
+        @TypeConverter
+        fun toUri(value: String?): Uri? = value?.let { Uri.parse(it) }
     }
 
     // Migrations
