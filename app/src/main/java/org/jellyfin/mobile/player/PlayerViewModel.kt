@@ -2,7 +2,6 @@ package org.jellyfin.mobile.player
 
 import android.annotation.SuppressLint
 import android.app.Application
-import android.content.Context
 import android.media.AudioAttributes
 import android.media.AudioManager
 import android.media.session.MediaSession
