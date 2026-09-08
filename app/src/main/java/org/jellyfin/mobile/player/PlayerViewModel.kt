@@ -28,10 +28,8 @@ import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
 import androidx.media3.exoplayer.source.MediaSource
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.exoplayer.util.EventLogger
-import androidx.media3.exoplayer.text.TextRenderer
-import android.os.Looper
-import androidx.media3.exoplayer.Renderer
-import androidx.media3.exoplayer.text.TextOutput
+import io.github.peerless2012.ass.media.AssHandler
+import io.github.peerless2012.ass.media.factory.AssRenderersFactory
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -147,6 +145,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
     private var progressUpdateJob: Job? = null
     private var chapterMarkingUpdateJob: Job? = null
     private var skipMediaSegmentUpdateJob: Job? = null
+    private var fallbackRetryJob: Job? = null
 
     /**
      * Returns the current ExoPlayer instance or null
@@ -244,21 +243,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
                 .build()
             else -> DefaultLoadControl()
         }
-        val renderersFactory = object : DefaultRenderersFactory(getApplication()) {
-            override fun buildTextRenderers(
-                context: Context,
-                output: TextOutput,
-                outputLooper: Looper,
-                extensionRendererMode: Int,
-                out: ArrayList<Renderer>,
-            ) {
-                out.add(
-                    TextRenderer(output, outputLooper).apply {
-                        experimentalSetLegacyDecodingEnabled(true)
-                    },
-                )
-            }
-        }.apply {
+        val appPreferences: AppPreferences = get()
+        val renderersFactory = DefaultRenderersFactory(getApplication()).apply {
             setEnableDecoderFallback(true) // Fallback only works if initialization fails, not decoding at playback time
             val rendererMode = when {
                 fallbackPreferExtensionRenderers -> DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER
@@ -302,15 +288,17 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
                 }
                 filteredDecoderList
             }
-        }
+        }.let { if (appPreferences.exoPlayerDirectPlayAss) AssRenderersFactory(get(), it) else it }
         _player.value = ExoPlayer.Builder(getApplication(), renderersFactory, get()).apply {
             setUsePlatformDiagnostics(false)
             setTrackSelector(trackSelector)
             setAnalyticsCollector(analyticsCollector)
             setLoadControl(loadControl)
+            setHandleAudioBecomingNoisy(true)
         }.build().apply {
             addListener(this@PlayerViewModel)
             applyDefaultAudioAttributes(C.AUDIO_CONTENT_TYPE_MOVIE)
+            if (appPreferences.exoPlayerDirectPlayAss) get<AssHandler>().init(this)
         }
     }
 
@@ -603,6 +591,10 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
         playerOrNull?.seekToOffset(displayPreferences.skipForwardLength)
     }
 
+    fun seekByOffset(offsetMs: Long) {
+        playerOrNull?.seekToOffset(offsetMs)
+    }
+
     private fun getCurrentChapterStartPosition(chapters: List<ChapterInfo>, playbackPosition: Duration): Duration? {
         val startPositions = chapters.map { c -> c.startPositionTicks.ticks }
         return startPositions.findLast { pos -> playbackPosition >= pos }
@@ -807,8 +799,21 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
             setupPlayer()
             queueManager.tryRestartPlayback()
         } else {
-            _error.postValue(error.localizedMessage.orEmpty())
+            Timber.w(error, "Playback error, attempting fallback")
+            val startPosition = (playerOrNull?.currentPosition ?: 0L).milliseconds
+            fallbackRetryJob?.cancel()
+            fallbackRetryJob = viewModelScope.launch {
+                val retried = queueManager.restartPlaybackWithFallback(startPosition)
+                if (!retried) {
+                    _error.postValue(error.localizedMessage.orEmpty())
+                }
+            }
         }
+    }
+
+    fun cancelFallbackRetry() {
+        fallbackRetryJob?.cancel()
+        fallbackRetryJob = null
     }
 
     override fun onCleared() {

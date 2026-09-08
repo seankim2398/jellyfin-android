@@ -94,7 +94,6 @@
     <string name="pref_exoplayer_allow_background_audio">Background audio</string>
     <string name="pref_exoplayer_allow_background_audio_summary">Allow playing videos in the background with audio-only</string>
     <string name="pref_exoplayer_direct_play_ass">Allow SSA/ASS subtitles in direct play</string>
-    <string name="pref_exoplayer_direct_play_ass_summary">Prevent transcoding and show subtitles with basic styling only. Advanced subtitle styling will not be available if enabled.</string>
     <string name="external_player_app">External player app</string>
     <string name="external_player_mpv">MPV Player</string>
     <string name="external_player_mpv_description">A simple, small and light-weight free (as in freedom) video player. It supports a wide variety of media file formats.</string>
@@ -127,4 +126,45 @@
     <string name="downloading_desc">Downloading %1$d titles</string>
     <string name="downloaded">Downloaded %1$s</string>
     <string name="special_episode">Specijal</string>
+    <string name="media_service_unknown_page">Unknown page</string>
+    <string name="media_service_no_items">No items found</string>
+    <string name="media_service_auth_expired">Please open the app on your phone to sign in to your Jellyfin server.</string>
+    <string name="media_service_invalid_id">Invalid item ID</string>
+    <string name="media_service_car_section_favorites">Favourites</string>
+    <string name="media_service_car_section_audiobooks">Audiobooks</string>
+    <string name="media_service_car_section_playlists">Playlists</string>
+    <string name="pref_exoplayer_network_buffer">Playback buffer size</string>
+    <string name="network_buffer_auto">Auto</string>
+    <string name="network_buffer_auto_description">Default buffer, suitable for most playback scenarios</string>
+    <string name="network_buffer_large">Large</string>
+    <string name="network_buffer_large_description">Larger buffer, may help on moderate or variable connections</string>
+    <string name="network_buffer_extra_large">Extra large</string>
+    <string name="network_buffer_extra_large_description">Maximum buffer, intended for slow or satellite connections</string>
+    <string name="downloading_title">Downloading %1$s</string>
+    <string name="download_cancel">Cancel</string>
+    <string name="download_completed">Download completed</string>
+    <string name="download_progress">%1$d%%</string>
+    <string name="download_remove_keep_local">Keep local file(s)</string>
+    <plurals name="download_remove_description">
+        <item quantity="one">Do you want to remove %1$s from your downloads?</item>
+        <item quantity="other">Do you want to remove these %1$d downloads?</item>
+    </plurals>
+    <string name="download_incomplete">Download incomplete</string>
+    <string name="pref_exoplayer_allow_horizontal_gesture">Horizontal gestures</string>
+    <string name="pref_exoplayer_allow_horizontal_gesture_summary">Allow horizontal gesture control for video seeking</string>
+    <string name="downloads_empty">No downloads yet</string>
+    <string name="downloads_empty_description">You can download movies and TV shows to watch them offline. Look for the download icon on the item details page.</string>
+    <plurals name="download_remove_title">
+        <item quantity="one">Remove download</item>
+        <item quantity="other">Remove downloads</item>
+    </plurals>
+    <string name="download_settings_dialog_title">Choose download location</string>
+    <string name="download_settings_dialog_message">Please choose where downloaded media should be saved. Downloads use WiFi only by default.</string>
+    <string name="select_folder">Select folder</string>
+    <string name="select_all">Select all</string>
+    <string name="deselect_all">Unselect all</string>
+    <string name="download_location_not_set">No download location</string>
+    <string name="download_location_not_set_description">To download media, please select a folder where the files should be stored.</string>
+    <string name="download_location_inaccessible">Download location inaccessible</string>
+    <string name="download_location_inaccessible_description">The selected download location is no longer accessible. Please select a different folder to resume downloads.</string>
 </resources>

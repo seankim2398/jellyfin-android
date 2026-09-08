@@ -42,11 +42,11 @@ class SettingsFragment : Fragment(), BackPressInterceptor {
 
     private val storageLocationPicker = registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
         if (uri != null) {
-            storageManager.changeStorageLocation(uri)
+            val changed = storageManager.changeStorageLocation(uri)
 
             // Update preference
-            if (::downloadLocationPreference.isInitialized) {
-                downloadLocationPreference.summary = storageManager.getStorageLocation().name
+            if (changed && ::downloadLocationPreference.isInitialized) {
+                downloadLocationPreference.summary = storageManager.getStorageLocation()?.name
                 downloadLocationPreference.requestRebindAndHighlight()
             }
         }
@@ -58,6 +58,7 @@ class SettingsFragment : Fragment(), BackPressInterceptor {
     private lateinit var pressSpeedUpPreference: CheckBoxPreference
     private lateinit var rememberBrightnessPreference: Preference
     private lateinit var backgroundAudioPreference: Preference
+    private lateinit var horizontalGesturePreference: Preference
     private lateinit var directPlayAssPreference: Preference
     private lateinit var networkBufferPreference: Preference
     private lateinit var externalPlayerChoicePreference: Preference
@@ -119,13 +120,14 @@ class SettingsFragment : Fragment(), BackPressInterceptor {
         )
         singleChoice(Constants.PREF_VIDEO_PLAYER_TYPE, videoPlayerOptions) {
             titleRes = R.string.pref_video_player_type_title
-            initialSelection = VideoPlayerType.WEB_PLAYER
+            initialSelection = VideoPlayerType.EXO_PLAYER
             defaultOnSelectionChange { selection ->
                 startLandscapeVideoInLandscapePreference.enabled = selection == VideoPlayerType.EXO_PLAYER
                 swipeGesturesPreference.enabled = selection == VideoPlayerType.EXO_PLAYER
                 rememberBrightnessPreference.enabled = selection == VideoPlayerType.EXO_PLAYER && swipeGesturesPreference.checked
                 pressSpeedUpPreference.enabled = selection == VideoPlayerType.EXO_PLAYER
                 backgroundAudioPreference.enabled = selection == VideoPlayerType.EXO_PLAYER
+                horizontalGesturePreference.enabled = selection == VideoPlayerType.EXO_PLAYER
                 directPlayAssPreference.enabled = selection == VideoPlayerType.EXO_PLAYER
                 preferredVideoCodecPreference.enabled = selection == VideoPlayerType.EXO_PLAYER
                 networkBufferPreference.enabled = selection == VideoPlayerType.EXO_PLAYER
@@ -162,9 +164,15 @@ class SettingsFragment : Fragment(), BackPressInterceptor {
             summaryRes = R.string.pref_exoplayer_allow_background_audio_summary
             enabled = appPreferences.videoPlayerType == VideoPlayerType.EXO_PLAYER
         }
+        horizontalGesturePreference = checkBox(Constants.PREF_EXOPLAYER_ALLOW_HORIZONTAL_GESTURE) {
+            titleRes = R.string.pref_exoplayer_allow_horizontal_gesture
+            summaryRes = R.string.pref_exoplayer_allow_horizontal_gesture_summary
+            enabled = appPreferences.videoPlayerType == VideoPlayerType.EXO_PLAYER
+            defaultValue = true
+        }
         directPlayAssPreference = checkBox(Constants.PREF_EXOPLAYER_DIRECT_PLAY_ASS) {
             titleRes = R.string.pref_exoplayer_direct_play_ass
-            summaryRes = R.string.pref_exoplayer_direct_play_ass_summary
+            summaryRes = R.string.pref_exoplayer_direct_play_ass_description
             enabled = appPreferences.videoPlayerType == VideoPlayerType.EXO_PLAYER
         }
         val networkBufferOptions = listOf(
@@ -281,16 +289,17 @@ class SettingsFragment : Fragment(), BackPressInterceptor {
         )
         singleChoice(Constants.PREF_DOWNLOAD_METHOD, downloadMethods) {
             titleRes = R.string.network_title
+            initialSelection = DownloadMethod.DEFAULT.intValue
         }
 
         downloadLocationPreference = pref(Constants.PREF_STORAGE_LOCATION) {
             val location = storageManager.getStorageLocation()
 
             titleRes = R.string.pref_download_location
-            summary = location.name
+            summary = location?.name ?: getString(R.string.menu_item_none)
 
             onClick {
-                storageLocationPicker.launch(location.uri)
+                storageLocationPicker.launch(location?.uri ?: storageManager.defaultStorageLocation)
                 false
             }
         }

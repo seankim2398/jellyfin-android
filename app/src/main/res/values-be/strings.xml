@@ -99,7 +99,6 @@
     <string name="pref_exoplayer_start_landscape_video_in_landscape">Пачынаць ландшафтныя відэа ў ландшафтнай арыентацыі</string>
     <string name="pref_exoplayer_allow_background_audio_summary">Дазволіць прайграванне відэа ў фонавым рэжыме толькі з аўдыя</string>
     <string name="pref_exoplayer_direct_play_ass">Дазволіць субцітры SSA/ASS у прамым прайграванні</string>
-    <string name="pref_exoplayer_direct_play_ass_summary">Забараніць перакадзіраванне і паказваць субцітры толькі з базавым стылем. Пашыраны стыль субцітраў не будзе даступны, калі ён уключаны.</string>
     <string name="external_player_app">Праграма знешняга прайгравальніка</string>
     <string name="external_player_mpv_description">Просты, маленькі і лёгкі бясплатны (свабодны) відэа прайгравальнік. Ён падтрымлівае шырокі спектр фарматаў медыяфайлаў.</string>
     <string name="external_player_mx_player_free_description">Магутны відэа прайгравальнік з удасканаленым апаратным паскарэннем і падтрымкай субцітраў.</string>
@@ -141,8 +140,22 @@
     <string name="download_cancel">Скасаваць</string>
     <string name="download_completed">Спампоўванне завершана</string>
     <string name="download_progress">%1$d%%</string>
-    <string name="download_remove">Выдаліць спампоўку</string>
     <string name="download_remove_keep_local">Пакінуць лакальны(-я) файл(-ы)</string>
-    <string name="download_remove_description">Вы ўпэўнены, што хочаце выдаліць %1$s са спамповак?</string>
+    <plurals name="download_remove_description">
+        <item quantity="one">Вы ўпэўнены, што хочаце выдаліць %2$s са спамповак?</item>
+        <item quantity="few">Вы ўпэўнены, што хочаце выдаліць %1$s спампоўкі?</item>
+        <item quantity="many">Вы ўпэўнены, што хочаце выдаліць %1$s спамповак?</item>
+        <item quantity="other">Вы ўпэўнены, што хочаце выдаліць %1$s спамповак?</item>
+    </plurals>
     <string name="download_incomplete">Спампоўванне не завершана</string>
+    <plurals name="download_remove_title">
+        <item quantity="one">Выдаліць спампоўку</item>
+        <item quantity="few">Выдаліць спампоўкі</item>
+        <item quantity="many">Выдаліць спампоўкі</item>
+        <item quantity="other">Выдаліць спампоўкі</item>
+    </plurals>
+    <string name="pref_exoplayer_allow_horizontal_gesture">Гарызантальныя жэсты</string>
+    <string name="select_folder">Выберыце папку</string>
+    <string name="select_all">Выбраць усе</string>
+    <string name="selected_count">Выбрана %1$d</string>
 </resources>

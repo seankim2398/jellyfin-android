@@ -93,7 +93,6 @@
     <string name="video_player_integrated">Integrierter Player</string>
     <string name="playback_info_stream_unknown_title">Unbekannter Titel</string>
     <string name="menu_item_auto">Automatisch</string>
-    <string name="pref_exoplayer_direct_play_ass_summary">Transkodieren vermeiden und Untertitel nur mit einfachem Erscheinungsbild anzeigen. Wenn aktiviert, ist die erweiterte Untertitelgestaltung nicht verfügbar.</string>
     <string name="pref_exoplayer_direct_play_ass">Direktwiedergabe von SSA-/ASS-Untertiteln zulassen</string>
     <string name="menu_item_software_decoding">Software-Dekodierung</string>
     <string name="pref_exoplayer_start_landscape_video_in_landscape">Querformat-Videos in Querformat-Ausrichtung starten</string>
@@ -147,8 +146,28 @@
     <string name="download_cancel">Abbrechen</string>
     <string name="download_completed">Download abgeschlossen</string>
     <string name="download_progress">%1$d%%</string>
-    <string name="download_remove">Download entfernen</string>
     <string name="download_remove_keep_local">Lokale Datei(en) behalten</string>
-    <string name="download_remove_description">Möchtest Du %1$s aus deinen Downloads entfernen?</string>
+    <plurals name="download_remove_description">
+        <item quantity="one">Möchtest Du \"%2$s\" aus deinen Downloads entfernen?</item>
+        <item quantity="other">Möchtest Du diese %1$d Downloads entfernen?</item>
+    </plurals>
     <string name="download_incomplete">Download unvollständig</string>
+    <string name="pref_exoplayer_allow_horizontal_gesture">Horizontale Gesten</string>
+    <string name="pref_exoplayer_allow_horizontal_gesture_summary">Horizontale Gestensteuerung zur Videosuche erlauben</string>
+    <string name="downloads_empty">Noch keine Downloads</string>
+    <string name="downloads_empty_description">Du kannst Filme und Serien herunterladen um sie offline zu schauen. Achte auf das Downloadicon auf der Element-Detailseite.</string>
+    <string name="download_settings_dialog_title">Downloadort wählen</string>
+    <string name="download_settings_dialog_message">Bitte wähle, wohin heruntergeladene Medien gespeichert werden sollen. Downloads verwenden standardmäßig nur WLAN.</string>
+    <string name="select_folder">Ordner wählen</string>
+    <plurals name="download_remove_title">
+        <item quantity="one">Download entfernen</item>
+        <item quantity="other">Downloads entfernen</item>
+    </plurals>
+    <string name="select_all">Alle auswählen</string>
+    <string name="deselect_all">Alle abwählen</string>
+    <string name="selected_count">%1$d ausgewählt</string>
+    <string name="download_location_not_set">Kein Ort für Downloads</string>
+    <string name="download_location_not_set_description">Um Medien herunterzuladen, gebe bitte einen Ordner an, in den Dateien gespeichert werden sollen.</string>
+    <string name="download_location_inaccessible">Downloadort nicht zugänglich</string>
+    <string name="download_location_inaccessible_description">Der gewählte Ort für Downloads ist nicht mehr zugänglich. Bitte wähle einen anderen Ordner um Downloads fortzusetzen.</string>
 </resources>

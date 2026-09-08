@@ -36,7 +36,7 @@
     <string name="available_servers_title">Dostępne serwery</string>
     <string name="choose_server_button_text">Wybierz serwer</string>
     <string name="connect_button_text">Połącz</string>
-    <string name="connection_error_unsupported_version_or_product">Nie wspierana wersja lub produkt</string>
+    <string name="connection_error_unsupported_version_or_product">Niewspierana wersja lub produkt</string>
     <string name="connection_error_unable_to_reach_sever">Nie można odnaleźć serwera</string>
     <string name="connection_error_cannot_connect">Nie można nawiązać połączenia.
 \nSprawdź nazwę hosta i połączenie sieciowe.</string>
@@ -92,10 +92,9 @@
     <string name="host_input_hint">Host</string>
     <string name="dialog_web_view_outdated_message">Implementacja WebView używana przez urządzenie jest przestarzała. \nZaktualizuj do wyższej wersji.</string>
     <string name="dialog_web_view_outdated">WebView w przestarzałej wersji</string>
-    <string name="dialog_web_view_not_supported_message">WebViews nie jest obsługiwane przez to urządzenie. \nZainstaluj kompatybilną implementację WebView lub zmień urządzenie na wspierane.</string>
+    <string name="dialog_web_view_not_supported_message">WebViews nie są obsługiwane przez te urządzenie. \nZainstaluj kompatybilną implementację WebView lub zmień urządzenie na wspierane.</string>
     <string name="menu_item_auto">Automatycznie</string>
     <string name="pref_exoplayer_direct_play_ass">Zezwól na bezpośrednie odtwarzanie napisów SSA/ASS</string>
-    <string name="pref_exoplayer_direct_play_ass_summary">Zablokuje transkodowanie i pokaż napisy z podstawowym stylem. Zaawansowane style napisów nie będą dostępne jeśli ustawienie jest włączone.</string>
     <string name="player_error_unspecific_exception">Problem z odtwarzaczem</string>
     <string name="pref_subtitle_style">Dostosuj styl napisów</string>
     <string name="pref_subtitle_style_summary">Możesz zmienić styl napisów w ustawieniach Androida</string>
@@ -147,9 +146,34 @@
     <string name="download_cancel">Anuluj</string>
     <string name="download_completed">Pobieranie ukończone</string>
     <string name="download_progress">%1$d%%</string>
-    <string name="download_remove">Usuń pobrane</string>
     <string name="download_remove_keep_local">Zachowaj plik(i) lokalny(-e)</string>
-    <string name="download_remove_description">Czy chcesz usunąć %1$s z pobranych plików?</string>
+    <plurals name="download_remove_description">
+        <item quantity="one">Czy chcesz usunąć „%2$s” z pobranych?</item>
+        <item quantity="few">Czy chcesz usunąć te „%1$d” z pobranych?</item>
+        <item quantity="many">Czy chcesz usunąć te „%1$d” z pobranych?</item>
+        <item quantity="other">Czy chcesz usunąć te „%1$d” z pobranych?</item>
+    </plurals>
     <string name="download_incomplete">Pobieranie niekompletne</string>
     <string name="media_service_car_section_playlists">Playlisty</string>
+    <string name="pref_exoplayer_allow_horizontal_gesture">Gesty poziome</string>
+    <string name="pref_exoplayer_allow_horizontal_gesture_summary">Zezwól na sterowanie gestami poziomymi podczas wyszukiwania wideo</string>
+    <string name="downloads_empty">Brak pobrań</string>
+    <string name="downloads_empty_description">Możesz pobierać filmy i seriale, aby oglądać je offline. Szukaj ikony pobierania na stronie ze szczegółami pozycji.</string>
+    <string name="download_settings_dialog_title">Wybierz lokalizację pobierania</string>
+    <string name="download_settings_dialog_message">Wybierz miejsce, w którym chcesz zapisać pobrane multimedia. Pobierania domyślnie korzystają tylko z Wi-Fi.</string>
+    <string name="select_folder">Wybierz folder</string>
+    <plurals name="download_remove_title">
+        <item quantity="one">Usuń pobrany</item>
+        <item quantity="few">Usuń pobrane</item>
+        <item quantity="many">Usuń pobrane</item>
+        <item quantity="other">Usuń pobrane</item>
+    </plurals>
+    <string name="select_all">Zaznacz wszystko</string>
+    <string name="deselect_all">Odznacz wszystko</string>
+    <string name="selected_count">%1$d zaznaczono</string>
+    <string name="download_location_not_set">Brak lokalizacji pobierania</string>
+    <string name="download_location_not_set_description">Aby pobrać multimedia, wybierz folder, w którym mają być zapisane.</string>
+    <string name="download_location_inaccessible">Lokalizacja pobierania jest niedostępna</string>
+    <string name="download_location_inaccessible_description">Wybrana lokalizacja pobierania nie jest już dostępna. Wybierz inny folder, aby wznowić pobieranie.</string>
+    <string name="pref_exoplayer_direct_play_ass_description">Użyj eksperymentalnego renderowania napisów po stronie klienta, może to nie zawsze działać</string>
 </resources>

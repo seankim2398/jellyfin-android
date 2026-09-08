@@ -5,6 +5,7 @@ import android.content.Context
 import android.net.Uri
 import android.os.Bundle
 import androidx.core.os.bundleOf
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.session.LibraryResult
@@ -43,6 +44,7 @@ import org.jellyfin.sdk.api.client.ApiClient
 import org.jellyfin.sdk.api.client.extensions.universalAudioApi
 import org.jellyfin.sdk.api.client.extensions.userLibraryApi
 import org.jellyfin.sdk.model.api.MediaStreamProtocol
+import org.jellyfin.sdk.model.extensions.ticks
 import timber.log.Timber
 
 @Suppress("InjectDispatcher")
@@ -52,6 +54,7 @@ class SessionBrowserCallback(
 ) : MediaLibrarySession.Callback {
     companion object {
         const val MAX_PAGE_SIZE = 250
+        const val MEDIA_ITEM_EXTRA_START_POSITION = "start_position"
     }
 
     val pages = listOf(
@@ -98,6 +101,9 @@ class SessionBrowserCallback(
             setMediaId(Json.encodeToString<LibraryMediaId>(LibraryMediaId.Route(action.route)))
         } else if (action is LibraryItemAction.Play) {
             setMediaId(Json.encodeToString<LibraryMediaId>(LibraryMediaId.Item(action.item.id, route)))
+            action.item.userData?.playbackPositionTicks?.ticks?.inWholeMilliseconds?.let {
+                extras.putLong(MEDIA_ITEM_EXTRA_START_POSITION, it)
+            }
         }
 
         setMediaMetadata(
@@ -134,6 +140,7 @@ class SessionBrowserCallback(
                     groupTitle = element.title,
                 )
             }
+
             is LibraryPageElement.Item -> listOf(element.toMediaItem(route))
         }
     }
@@ -163,7 +170,12 @@ class SessionBrowserCallback(
         pageIndex: Int,
         pageSize: Int,
     ): LibraryResult<ImmutableList<MediaItem>> {
-        val page = route.page ?: return LibraryResult.ofError(SessionError(SessionError.ERROR_BAD_VALUE, context.getString(R.string.media_service_unknown_page)))
+        val page = route.page ?: return LibraryResult.ofError(
+            SessionError(
+                SessionError.ERROR_BAD_VALUE,
+                context.getString(R.string.media_service_unknown_page)
+            )
+        )
 
         if (api.baseUrl == null || api.accessToken == null) {
             return LibraryResult.ofError(
@@ -348,32 +360,82 @@ class SessionBrowserCallback(
         var expandedItems = mediaItems
         var newStartIndex = startIndex
 
-        // Expand media item to full playlist
+        // Modify playlist when a single item is requested
         if (mediaItems.size == 1) {
+            val firstItem = mediaItems.first()
+
+            // Expand media item to full playlist
             val libraryMediaId = runCatching {
-                Json.decodeFromString<LibraryMediaId>(
-                    mediaItems.first().mediaId,
-                )
+                Json.decodeFromString<LibraryMediaId>(firstItem.mediaId)
             }.getOrNull()
 
-            if (libraryMediaId is LibraryMediaId.Item) {
-                val page = libraryMediaId.route.page
+            when {
+                // Play via search
+                firstItem.mediaId == MediaItem.DEFAULT_MEDIA_ID && firstItem.requestMetadata.mediaUri == null -> {
+                    val search = firstItem.requestMetadata.searchQuery
+                    Timber.d("Search requested $search")
 
-                @Suppress("UNCHECKED_CAST")
-                expandedItems = (page as? LibraryPage<LibraryRoute>)
-                    ?.getContent(libraryMediaId.route, startIndex, MAX_PAGE_SIZE)
-                    ?.toMediaItems(libraryMediaId.route)
-                    .orEmpty()
+                    val route = if (search.isNullOrEmpty()) LibraryRoute.Suggested
+                    else LibraryRoute.Search(search)
 
-                newStartIndex = expandedItems
-                    .indexOfFirst {
-                        (Json.decodeFromString<LibraryMediaId>(it.mediaId) as? LibraryMediaId.Item)?.itemId == libraryMediaId.itemId
+                    @Suppress("UNCHECKED_CAST")
+                    expandedItems = (route.page as? LibraryPage<LibraryRoute>)
+                        ?.getContent(route, 0, MAX_PAGE_SIZE)
+                        ?.toMediaItems(route)
+                        .orEmpty()
+
+                    // Android Auto does not support session error reporting
+                    // but Google Play requires feedback on all search requests
+                    // so fallback to random item playback if no search results are found
+                    if (expandedItems.isEmpty()) {
+                        @Suppress("UNCHECKED_CAST")
+                        expandedItems = (LibraryRoute.Suggested.page as LibraryPage<LibraryRoute>)
+                            .getContent(LibraryRoute.Suggested, 0, MAX_PAGE_SIZE)
+                            .toMediaItems(route)
                     }
-                    .coerceAtLeast(0)
+
+                    newStartIndex = 0
+                }
+
+                // Expand media item to full playlist
+                libraryMediaId is LibraryMediaId.Item -> {
+                    Timber.d("Expanding item $libraryMediaId")
+                    val page = libraryMediaId.route.page
+
+                    @Suppress("UNCHECKED_CAST")
+                    expandedItems = (page as? LibraryPage<LibraryRoute>)
+                        ?.getContent(libraryMediaId.route, startIndex, MAX_PAGE_SIZE)
+                        ?.toMediaItems(libraryMediaId.route)
+                        .orEmpty()
+
+                    newStartIndex = expandedItems
+                        .indexOfFirst {
+                            (Json.decodeFromString<LibraryMediaId>(it.mediaId) as? LibraryMediaId.Item)?.itemId == libraryMediaId.itemId
+                        }
+                        .coerceAtLeast(0)
+                }
             }
         }
 
+        // Use the server-side stored position if there is no requested start position
+        val newStartPositionMs = when (startPositionMs) {
+            0L, C.TIME_UNSET -> expandedItems.firstOrNull()?.mediaMetadata?.extras?.getLong(
+                MEDIA_ITEM_EXTRA_START_POSITION,
+                startPositionMs
+            ) ?: startPositionMs
+
+            else -> startPositionMs
+        }
+
         expandedItems = onAddMediaItems(mediaSession, controller, expandedItems).await()
-        MediaSession.MediaItemsWithStartPosition(expandedItems, newStartIndex, startPositionMs)
+
+        Timber.d("onSetMediaItems resulted in ${expandedItems.size} items")
+        if (expandedItems.isEmpty()) {
+            mediaSession.sendError(
+                controller,
+                SessionError(SessionError.ERROR_BAD_VALUE, context.getString(R.string.media_service_no_items))
+            )
+        }
+        MediaSession.MediaItemsWithStartPosition(expandedItems, newStartIndex, newStartPositionMs)
     }
 }

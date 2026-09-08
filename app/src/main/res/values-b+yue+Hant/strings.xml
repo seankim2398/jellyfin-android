@@ -93,7 +93,6 @@
     <string name="pref_exoplayer_allow_background_audio">背景音訊播放</string>
     <string name="pref_exoplayer_allow_background_audio_summary">允許喺背景播放影片（僅限音訊）</string>
     <string name="pref_exoplayer_direct_play_ass">直接播放嗰陣允許 SSA/ASS 字幕</string>
-    <string name="pref_exoplayer_direct_play_ass_summary">防止轉碼並僅以基本樣式顯示字幕。啟用後將無法使用高級字幕樣式。</string>
     <string name="external_player_app">外部播放器應用程式</string>
     <string name="external_player_mpv">MPV 播放器</string>
     <string name="external_player_mpv_description">一款簡單、輕量、細小且自由開源嘅影片播放器。支援多種唔同嘅媒體檔案格式。</string>
@@ -114,13 +113,13 @@
     <string name="view_downloads">檢視下載項目</string>
     <string name="downloads">下載項目</string>
     <string name="download_notifications_description">下載通知</string>
-    <string name="failed_thumbnail">下載縮圖失敗</string>
+    <string name="failed_thumbnail">下載預覽圖失敗</string>
     <string name="failed_information">攞唔到媒體資訊</string>
     <string name="failed_network_method_check">唔該check吓你允許嘅下載方式</string>
     <string name="special_episode">特輯</string>
     <string name="yes">係</string>
     <string name="no">唔係</string>
-    <string name="thumbnail_desc">縮圖</string>
+    <string name="thumbnail_desc">預覽圖</string>
     <string name="store_videos_in_internal_storage">將影片儲存喺內部儲存空間</string>
     <string name="stored_videos_in_internal_storage_desc">電影同電視節目等影片將會儲存喺應用程式嘅內部儲存空間，並可直接透過程式存取。</string>
     <string name="tv_show_desc">%1$s - 第 %2$d 季第 %3$d 集</string>
@@ -144,8 +143,26 @@
     <string name="download_cancel">取消</string>
     <string name="download_completed">下載搞掂</string>
     <string name="download_progress">%1$d%%</string>
-    <string name="download_remove">刪走下載</string>
     <string name="download_remove_keep_local">保留本機檔案</string>
-    <string name="download_remove_description">你想唔想響你嘅下載項目入面刪走 %1$s？</string>
+    <plurals name="download_remove_description">
+        <item quantity="other">你係咪想從你嘅下載項目入面刪走 %1$d？</item>
+    </plurals>
     <string name="download_incomplete">下載未完成</string>
+    <string name="pref_exoplayer_allow_horizontal_gesture">水平手勢</string>
+    <string name="pref_exoplayer_allow_horizontal_gesture_summary">容許撳住左右拉動手勢嚟跳轉影片進度</string>
+    <string name="downloads_empty">暫時冇下載項目</string>
+    <string name="downloads_empty_description">你可以下載電影同電視節目嚟離線觀看。請喺項目嘅詳細資訊頁面搵返下載圖示。</string>
+    <string name="download_settings_dialog_title">揀下載位置</string>
+    <string name="download_settings_dialog_message">請揀你要將下載嘅媒體儲存喺邊度。預設情況下，下載只會用 WiFi。</string>
+    <string name="select_folder">揀資料夾</string>
+    <plurals name="download_remove_title">
+        <item quantity="other">移除下載項目</item>
+    </plurals>
+    <string name="select_all">揀嗮全部</string>
+    <string name="deselect_all">取消全揀</string>
+    <string name="selected_count">已揀 %1$d</string>
+    <string name="download_location_not_set">冇下載目標點</string>
+    <string name="download_location_not_set_description">要下載媒體檔案，唔該揀返用嚟儲存檔案嘅資料夾。</string>
+    <string name="download_location_inaccessible">下載位置無法存取</string>
+    <string name="download_location_inaccessible_description">你所揀嘅資料夾無法存取，唔該揀返第個同級或上級資料夾嚟繼續下載。</string>
 </resources>

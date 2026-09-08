@@ -38,6 +38,7 @@ object Constants {
     const val PREF_EXOPLAYER_REMEMBER_BRIGHTNESS = "pref_exoplayer_remember_brightness"
     const val PREF_EXOPLAYER_BRIGHTNESS = "pref_exoplayer_brightness"
     const val PREF_EXOPLAYER_ALLOW_BACKGROUND_AUDIO = "pref_exoplayer_allow_background_audio"
+    const val PREF_EXOPLAYER_ALLOW_HORIZONTAL_GESTURE = "pref_exoplayer_allow_horizontal_gesture"
     const val PREF_EXOPLAYER_DIRECT_PLAY_ASS = "pref_exoplayer_direct_play_ass"
     const val PREF_EXOPLAYER_NETWORK_BUFFER = "pref_exoplayer_network_buffer"
     const val NETWORK_BUFFER_AUTO = "auto"
@@ -56,6 +57,7 @@ object Constants {
     // InputManager commands
     const val PLAYBACK_MANAGER_COMMAND_PLAY = "unpause"
     const val PLAYBACK_MANAGER_COMMAND_PAUSE = "pause"
+    const val PLAYBACK_MANAGER_COMMAND_PLAY_PAUSE = "playPause"
     const val PLAYBACK_MANAGER_COMMAND_PREVIOUS = "previousTrack"
     const val PLAYBACK_MANAGER_COMMAND_NEXT = "nextTrack"
     const val PLAYBACK_MANAGER_COMMAND_REWIND = "rewind"
@@ -65,10 +67,7 @@ object Constants {
     const val PLAYBACK_MANAGER_COMMAND_VOL_DOWN = "volumeDown"
 
     // Notification
-    val PENDING_INTENT_FLAGS = PendingIntent.FLAG_UPDATE_CURRENT or when {
-        AndroidVersion.isAtLeastM -> PendingIntent.FLAG_IMMUTABLE
-        else -> 0
-    }
+    const val PENDING_INTENT_FLAGS = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
     const val MEDIA_NOTIFICATION_CHANNEL_ID = "org.jellyfin.mobile.media.NOW_PLAYING"
     const val DOWNLOAD_NOTIFICATION_CHANNEL_ID = "org.jellyfin.mobile.download.DOWNLOAD_PROGRESS"
 
@@ -115,6 +114,10 @@ object Constants {
     const val DEFAULT_CONTROLS_TIMEOUT_MS = 2500
     const val SWIPE_GESTURE_EXCLUSION_SIZE_VERTICAL = 64
     const val DEFAULT_CENTER_OVERLAY_TIMEOUT_MS = 250
+    const val SWIPE_GESTURE_EXCLUSION_SIZE_HORIZONTAL = 48
+    const val HORIZONTAL_SWIPE_DISTANCE_PER_SECOND = 20 // base pixels needed to swipe for 1 second seek
+    const val SEEK_ACCELERATION_FACTOR = 2.5f // acceleration factor for non-linear seek
+    const val SEEK_ACCELERATION_FACTOR_PORTRAIT = 5.0f
     const val DISPLAY_PREFERENCES_ID_USER_SETTINGS = "usersettings"
     const val DISPLAY_PREFERENCES_CLIENT_EMBY = "emby"
     const val DISPLAY_PREFERENCES_SKIP_BACK_LENGTH = "skipBackLength"
@@ -140,6 +143,8 @@ object Constants {
     const val VIDEO_PLAYER_NOTIFICATION_ID = 99
     const val DOWNLOAD_NOTIFICATION_ID = 80
     const val MAX_SKIP_TO_PREV_CHAPTER_MS = 10_000L
+    const val TICKS_PER_MILLISECOND = 10_000L
+    const val TRICKPLAY_TILE_REFRESH_WINDOW_MS = 100L
 
     // Video player intent extras
     const val EXTRA_MEDIA_PLAY_OPTIONS = "org.jellyfin.mobile.MEDIA_PLAY_OPTIONS"

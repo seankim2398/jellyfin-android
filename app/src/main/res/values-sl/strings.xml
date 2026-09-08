@@ -108,7 +108,6 @@
     <string name="pref_exoplayer_direct_play_ass">Dovoli SSA/ASS podnapise v neposrednem predvajanju</string>
     <string name="bluetooth_permission_message">Aplikacija potrebuje dostop do Bluetooth za zaznavanje prekinjene povezave z brezžičnimi slušalkami ali zvočniki. Na sistemih Android je to dovoljenje opisano kot dostop do naprav v bližini in opozarja, da lahko to omogoči zaznavanje trenutne lokacije. Aplikacija Jellyfin ne bo nikoli uporabila tega dovoljenja za zaznavanje vaše lokacije.</string>
     <string name="pref_exoplayer_start_landscape_video_in_landscape">Začni predvajanje ležečih videov v ležečem načinu</string>
-    <string name="pref_exoplayer_direct_play_ass_summary">Prepreči prekodiranje in prikaže podnapise z osnovnimi slogi. Napredno oblikovanje podnapisov ne bo na voljo.</string>
     <string name="wifi_only_summary">Mediji bodo preneseni samo prek WiFi.</string>
     <string name="mobile_data_summary">Mediji bodo preneseni prek WiFi in mobilnih omrežij.</string>
     <string name="mobile_data_and_roaming_summary">Mediji se bodo prenašali prek WiFi, mobilnih in gostujočih omrežij.</string>
@@ -132,4 +131,9 @@
     <string name="store_videos_in_internal_storage">Shrani posnetke v notranji pomnilnik</string>
     <string name="stored_videos_in_internal_storage_desc">Videoposnetki, kot so filmi in serije, bodo shranjeni v notranjem pomnilniku aplikacije. Dostop do njih bo omogočen iz aplikacije.</string>
     <string name="special_episode">Posebna epizoda</string>
+    <string name="media_service_unknown_page">Neznana stran</string>
+    <string name="media_service_no_items">Najdenih ni bilo nobenih elementov</string>
+    <string name="media_service_auth_expired">Prosimo, odprite aplikacijo na svojem telefonu, da se prijavite v svoj strežnik Jellyfin.</string>
+    <string name="media_service_car_section_favorites">Priljubljene</string>
+    <string name="media_service_car_section_audiobooks">Zvočne knjige</string>
 </resources>

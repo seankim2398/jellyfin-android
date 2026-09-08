@@ -16,7 +16,6 @@ import android.view.ViewGroup
 import android.view.WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
 import android.widget.ImageButton
 import androidx.annotation.RequiresApi
-import androidx.appcompat.widget.AppCompatTextView
 import androidx.appcompat.widget.Toolbar
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -28,6 +27,8 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.Player
 import androidx.media3.ui.PlayerView
+import io.github.peerless2012.ass.media.AssHandler
+import io.github.peerless2012.ass.media.widget.AssSubtitleView
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import org.jellyfin.mobile.R
@@ -60,6 +61,7 @@ import androidx.media3.ui.R as Media3R
 @Suppress("TooManyFunctions")
 class PlayerFragment : Fragment(), BackPressInterceptor {
     private val appPreferences: AppPreferences by inject()
+    private val assHandler: AssHandler by inject()
     private val viewModel: PlayerViewModel by viewModels()
     private var _playerBinding: FragmentPlayerBinding? = null
     private val playerBinding: FragmentPlayerBinding get() = _playerBinding!!
@@ -70,7 +72,6 @@ class PlayerFragment : Fragment(), BackPressInterceptor {
     private val playerControlsBinding: ExoPlayerControlViewBinding get() = _playerControlsBinding!!
     private val playerControlsView: View get() = playerControlsBinding.root
     private val toolbar: Toolbar get() = playerControlsBinding.toolbar
-    private val toolbarTitle: AppCompatTextView get() = playerControlsBinding.toolbarTitle
     private val fullscreenSwitcher: ImageButton get() = playerControlsBinding.fullscreenSwitcher
     private var playerMenus: PlayerMenus? = null
 
@@ -100,7 +101,10 @@ class PlayerFragment : Fragment(), BackPressInterceptor {
         // Observe ViewModel
         viewModel.player.observe(this) { player ->
             playerView.player = player
-            if (player == null) parentFragmentManager.popBackStack()
+            // Automatically close fragment, unless we're in PiP mode
+            if (player == null && !(AndroidVersion.isAtLeastN && requireActivity().isInPictureInPictureMode)) {
+                parentFragmentManager.popBackStack()
+            }
         }
         viewModel.playerState.observe(this) { playerState ->
             val isPlaying = viewModel.playerOrNull?.isPlaying == true
@@ -124,7 +128,7 @@ class PlayerFragment : Fragment(), BackPressInterceptor {
             }
 
             // Update title and player menus
-            toolbarTitle.text = mediaSource.getName(requireContext())
+            toolbar.title = mediaSource.getName(requireContext())
             playerMenus?.onQueueItemChanged(mediaSource, viewModel.queueManager.hasNext())
         }
 
@@ -208,6 +212,12 @@ class PlayerFragment : Fragment(), BackPressInterceptor {
         // Disable controller animations
         playerView.setControllerAnimationEnabled(false)
 
+        if (appPreferences.exoPlayerDirectPlayAss) {
+            playerView.subtitleView?.apply {
+                addView(AssSubtitleView(this.context, assHandler))
+            }
+        }
+
         playerLockScreenHelper = PlayerLockScreenHelper(this, playerBinding, orientationListener)
         playerGestureHelper = PlayerGestureHelper(this, playerBinding, playerLockScreenHelper)
 
@@ -229,6 +239,11 @@ class PlayerFragment : Fragment(), BackPressInterceptor {
         if (isLandscape()) {
             playerFullscreenHelper.enableFullscreen()
         }
+
+        // If playback ended during picture in picture we'll return to the main app when PiP is closed
+        if (viewModel.playerOrNull == null) {
+            parentFragmentManager.popBackStack()
+        }
     }
 
     /**
@@ -236,7 +251,7 @@ class PlayerFragment : Fragment(), BackPressInterceptor {
      */
     private fun updateFullscreenState(configuration: Configuration) {
         // Do not handle any orientation changes while being in Picture-in-Picture mode
-        if (AndroidVersion.isAtLeastN && requireActivity().isInPictureInPictureMode) {
+        if (AndroidVersion.isAtLeastN && activity?.isInPictureInPictureMode == true) {
             return
         }
 
@@ -287,6 +302,8 @@ class PlayerFragment : Fragment(), BackPressInterceptor {
     fun onRewind() = viewModel.rewind()
 
     fun onFastForward() = viewModel.fastForward()
+
+    fun onSeekByOffset(offsetMs: Long) = viewModel.seekByOffset(offsetMs)
 
     fun onPreviousChapter() = viewModel.previousChapter()
 
@@ -357,7 +374,7 @@ class PlayerFragment : Fragment(), BackPressInterceptor {
     }
 
     fun onUserLeaveHint() {
-        if (AndroidVersion.isAtLeastN && viewModel.playerOrNull?.isPlaying == true) {
+        if (AndroidVersion.isAtLeastN && viewModel.playerOrNull != null) {
             requireActivity().enterPictureInPicture()
         }
     }
@@ -400,6 +417,8 @@ class PlayerFragment : Fragment(), BackPressInterceptor {
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
         Handler(Looper.getMainLooper()).post {
+            if (!isAdded) return@post
+
             updateFullscreenState(newConfig)
             playerGestureHelper.handleConfiguration(newConfig)
         }

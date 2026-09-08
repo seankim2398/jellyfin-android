@@ -95,7 +95,6 @@
     <string name="dialog_web_view_not_supported">WebView не підтримується</string>
     <string name="menu_item_auto">Автоматичний</string>
     <string name="pref_exoplayer_direct_play_ass">Дозволити субтитри SSA/ASS у прямому відтворенні</string>
-    <string name="pref_exoplayer_direct_play_ass_summary">Заборонити перекодування та відображати субтитри лише з основним стилем. Розширений стиль не буде доступний, якщо його ввімкнено.</string>
     <string name="pref_subtitle_style">Налаштувати стиль субтитрів</string>
     <string name="menu_item_hardware_decoding">Апаратне декодування</string>
     <string name="player_error_unspecific_exception">Щось пішло не так з плеєром</string>
@@ -148,8 +147,33 @@
     <string name="download_cancel">Відміна</string>
     <string name="download_completed">Завантаження завершено</string>
     <string name="download_progress">%1$d%%</string>
-    <string name="download_remove">Видалити завантажене</string>
     <string name="download_remove_keep_local">Зберегти локальний файл(и)</string>
-    <string name="download_remove_description">Ви бажаєте видалити %1$s із завантажень?</string>
+    <plurals name="download_remove_description">
+        <item quantity="one">Ви бажаєте видалити \"%2$s\" із завантажень?</item>
+        <item quantity="few">Ви бажаєте видалити ці \"%1$d\"завантаження?</item>
+        <item quantity="many">Ви бажаєте видалити ці \"%1$d\" завантажень?</item>
+        <item quantity="other">Ви бажаєте видалити ці \"%1$d\" завантажень?</item>
+    </plurals>
     <string name="download_incomplete">Завантаження не завершено</string>
+    <string name="pref_exoplayer_allow_horizontal_gesture">Горизонтальні жести</string>
+    <string name="pref_exoplayer_allow_horizontal_gesture_summary">Дозволити горизонтальні жести для керування перемотуванням відео</string>
+    <string name="downloads_empty">Завантажень ще немає</string>
+    <string name="downloads_empty_description">Ви можете завантажувати фільми та телешоу, щоб дивитися їх офлайн. Шукайте іконку завантаження на сторінці з описом елемента.</string>
+    <string name="download_settings_dialog_title">Виберіть місце завантаження</string>
+    <string name="download_settings_dialog_message">Будь ласка, виберіть місце, куди потрібно зберігати завантажені медіафайли. За замовчуванням завантаження виконуються лише через Wi-Fi.</string>
+    <string name="select_folder">Виберіть папку</string>
+    <plurals name="download_remove_title">
+        <item quantity="one">Видалити завантаження</item>
+        <item quantity="few">Видалити завантаження</item>
+        <item quantity="many">Видалити завантажень</item>
+        <item quantity="other">Видалити завантажень</item>
+    </plurals>
+    <string name="select_all">Вибрати все</string>
+    <string name="deselect_all">Зняти вибір із усіх</string>
+    <string name="selected_count">%1$d вибрано</string>
+    <string name="download_location_not_set">Не вибрано місце збереження</string>
+    <string name="download_location_not_set_description">Щоб завантажити медіафайли, виберіть папку, у якій мають зберігатися файли.</string>
+    <string name="download_location_inaccessible">Місце для завантаження недоступне</string>
+    <string name="download_location_inaccessible_description">Вибране місце для завантаження більше недоступне. Будь ласка, виберіть іншу папку, щоб відновити завантаження.</string>
+    <string name="pref_exoplayer_direct_play_ass_description">Використовувати експериментальний клієнтський рендеринг субтитрів, може працювати не завжди</string>
 </resources>

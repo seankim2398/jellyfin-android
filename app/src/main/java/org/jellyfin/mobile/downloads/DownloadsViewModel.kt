@@ -3,8 +3,10 @@ package org.jellyfin.mobile.downloads
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -32,11 +34,15 @@ class DownloadsViewModel : ViewModel(), KoinComponent {
         .flowOn(Dispatchers.IO)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), emptyList())
 
+    private val _storageLocation = MutableStateFlow(storageManager.getStorageLocation())
+    val storageLocation = _storageLocation.asStateFlow()
+
+    private val _storageLocationAccessible = MutableStateFlow(storageManager.isStorageLocationAccessible())
+    val storageLocationAccessible = _storageLocationAccessible.asStateFlow()
+
     fun openDownload(download: DownloadEntity) {
         when (download.item.mediaType) {
-            MediaType.VIDEO,
-            MediaType.AUDIO,
-            -> {
+            MediaType.VIDEO -> {
                 val playOptions = PlayOptions(
                     ids = listOf(download.itemId),
                     mediaSourceId = download.itemId.toString(),
@@ -49,22 +55,23 @@ class DownloadsViewModel : ViewModel(), KoinComponent {
                 activityEventHandler.emit(ActivityEvent.LaunchNativePlayer(playOptions))
             }
 
+            MediaType.AUDIO,
             MediaType.PHOTO,
             MediaType.BOOK,
-            MediaType.UNKNOWN,
-            -> {
+            MediaType.UNKNOWN -> {
                 viewModelScope.launch {
-                    val fileUri = withContext(Dispatchers.IO) {
+                    withContext(Dispatchers.IO) {
                         val storageLocation = storageManager.getStorageLocation()
-                        val itemLocation = storageLocation.findFile(download.path)
+                        val itemLocation = storageLocation?.findFile(download.path)
                         if (itemLocation != null && itemLocation.isDirectory) {
                             val filename = download.item.path?.replace(Regex("^.*[\\\\/]"), "")
                             if (filename != null) itemLocation.findFile(filename)?.uri else null
                         } else {
                             null
                         }
+                    }?.let {
+                        activityEventHandler.emit(ActivityEvent.OpenUrl(it.toString(), true))
                     }
-                    fileUri?.let { activityEventHandler.emit(ActivityEvent.OpenUrl(it.toString(), true)) }
                 }
             }
         }
@@ -80,5 +87,11 @@ class DownloadsViewModel : ViewModel(), KoinComponent {
         viewModelScope.launch {
             downloadManager.delete(download.id, deleteFiles)
         }
+    }
+
+    fun changeStorageLocation(uri: android.net.Uri) {
+        storageManager.changeStorageLocation(uri)
+        _storageLocation.value = storageManager.getStorageLocation()
+        _storageLocationAccessible.value = storageManager.isStorageLocationAccessible()
     }
 }

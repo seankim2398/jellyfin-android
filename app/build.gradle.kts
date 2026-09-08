@@ -173,13 +173,14 @@ dependencies {
     implementation(libs.bundles.androidx.media3)
     proprietaryImplementation(libs.androidx.media3.cast)
     proprietaryImplementation(libs.bundles.playservices)
+    implementation(libs.libass.media)
 
     // Room
     implementation(libs.bundles.androidx.room)
-    implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
 
     // Monitoring
+    implementation(libs.slf4j.timber)
     implementation(libs.timber)
 
     // Testing

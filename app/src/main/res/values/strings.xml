@@ -108,8 +108,10 @@
     <string name="pref_exoplayer_allow_press_speed_up_summary">Touch and hold the screen to temporarily speed up playback</string>
     <string name="pref_exoplayer_allow_background_audio">Background audio</string>
     <string name="pref_exoplayer_allow_background_audio_summary">Allow playing videos in the background with audio-only</string>
+    <string name="pref_exoplayer_allow_horizontal_gesture">Horizontal gestures</string>
+    <string name="pref_exoplayer_allow_horizontal_gesture_summary">Allow horizontal gesture control for video seeking</string>
     <string name="pref_exoplayer_direct_play_ass">Allow SSA/ASS subtitles in direct play</string>
-    <string name="pref_exoplayer_direct_play_ass_summary">Prevent transcoding and show subtitles with basic styling only. Advanced subtitle styling will not be available if enabled.</string>
+    <string name="pref_exoplayer_direct_play_ass_description">Use experimental client-side subtitle rendering, may not always work</string>
     <string name="pref_exoplayer_network_buffer">Playback buffer size</string>
     <string name="network_buffer_auto">Auto</string>
     <string name="network_buffer_auto_description">Default buffer, suitable for most playback scenarios</string>
@@ -148,6 +150,8 @@
     <string name="pref_download_location">Download location</string>
     <string name="view_downloads">View downloads</string>
     <string name="downloads">Downloads</string>
+    <string name="downloads_empty">No downloads yet</string>
+    <string name="downloads_empty_description">You can download movies and TV shows to watch them offline. Look for the download icon on the item details page.</string>
     <string name="download_notifications_description">Download notifications</string>
     <string name="failed_thumbnail">Failed to download thumbnail</string>
     <string name="failed_information">Failed to retrieve media information</string>
@@ -165,8 +169,24 @@
     <string name="download_cancel">Cancel</string>
     <string name="download_completed">Download completed</string>
     <string name="download_progress">%1$d%%</string>
-    <string name="download_remove">Remove download</string>
+    <plurals name="download_remove_title">
+        <item quantity="one">Remove download</item>
+        <item quantity="other">Remove downloads</item>
+    </plurals>
     <string name="download_remove_keep_local">Keep local file(s)</string>
-    <string name="download_remove_description">Do you want to remove "%1$s" from your downloads?</string>
+    <plurals name="download_remove_description">
+        <item quantity="one">Do you want to remove \"%2$s\" from your downloads?</item>
+        <item quantity="other">Do you want to remove these %1$d downloads?</item>
+    </plurals>
     <string name="download_incomplete">Download incomplete</string>
+    <string name="download_settings_dialog_title">Choose download location</string>
+    <string name="download_settings_dialog_message">Please choose where downloaded media should be saved. Downloads use WiFi only by default.</string>
+    <string name="select_folder">Select folder</string>
+    <string name="select_all">Select all</string>
+    <string name="deselect_all">Deselect all</string>
+    <string name="selected_count">%1$d selected</string>
+    <string name="download_location_not_set">No download location</string>
+    <string name="download_location_not_set_description">To download media, please select a folder where the files should be stored.</string>
+    <string name="download_location_inaccessible">Download location inaccessible</string>
+    <string name="download_location_inaccessible_description">The selected download location is no longer accessible. Please select a different folder to resume downloads.</string>
 </resources>

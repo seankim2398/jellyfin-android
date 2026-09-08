@@ -6,11 +6,9 @@ import androidx.core.net.toUri
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.media3.common.MediaItem
-import androidx.media3.exoplayer.hls.HlsMediaSource
+import androidx.media3.common.MimeTypes
 import androidx.media3.exoplayer.source.MediaSource
 import androidx.media3.exoplayer.source.MergingMediaSource
-import androidx.media3.exoplayer.source.ProgressiveMediaSource
-import androidx.media3.exoplayer.source.SingleSampleMediaSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.jellyfin.mobile.data.dao.DownloadDao
@@ -37,6 +35,7 @@ import org.jellyfin.sdk.model.serializer.toUUIDOrNull
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
 import org.koin.core.component.inject
+import timber.log.Timber
 import java.util.UUID
 import kotlin.time.Duration
 
@@ -53,6 +52,9 @@ class QueueManager(
     private var currentQueue: List<UUID> = emptyList()
     private var currentQueueIndex: Int = 0
 
+    private var playbackRetries = 0
+    private var lastPlaybackError = 0L
+
     private val _currentMediaSource: MutableLiveData<JellyfinMediaSource> = MutableLiveData()
     val currentMediaSource: LiveData<JellyfinMediaSource>
         get() = _currentMediaSource
@@ -68,6 +70,7 @@ class QueueManager(
     suspend fun initializePlaybackQueue(playOptions: PlayOptions): PlayerException? {
         currentQueue = playOptions.ids
         currentQueueIndex = playOptions.startIndex
+        resetPlaybackFallback()
 
         val itemId = when {
             currentQueue.isNotEmpty() -> currentQueue[currentQueueIndex]
@@ -145,6 +148,8 @@ class QueueManager(
         audioStreamIndex: Int? = null,
         subtitleStreamIndex: Int? = null,
         playWhenReady: Boolean = true,
+        enableDirectPlay: Boolean? = null,
+        enableDirectStream: Boolean? = null,
     ): PlayerException? {
         mediaSourceResolver.resolveMediaSource(
             itemId = itemId,
@@ -154,6 +159,8 @@ class QueueManager(
             startTime = startTime,
             audioStreamIndex = audioStreamIndex,
             subtitleStreamIndex = subtitleStreamIndex,
+            enableDirectPlay = enableDirectPlay,
+            enableDirectStream = enableDirectStream,
         ).onSuccess { jellyfinMediaSource ->
             // Ensure transcoding of the current element is stopped
             getCurrentMediaSourceOrNull()?.let { oldMediaSource ->
@@ -184,6 +191,55 @@ class QueueManager(
                 viewModel.load(this, it, playWhenReady = true)
             }
         }
+    }
+
+    private fun resetPlaybackFallback() {
+        playbackRetries = 0
+        lastPlaybackError = 0L
+        viewModel.cancelFallbackRetry()
+    }
+
+    /**
+     * Retry playback with progressively degraded settings to work around source errors.
+     *
+     * Retry 1: no constraints — lets the server decide freely.
+     * Retry 2: disable direct play, allowing the server to fall back to direct stream.
+     * Retry 3: disable direct stream too, forcing the server to transcode.
+     *
+     * @param startPosition The position at which to resume playback after the retry.
+     * @return true if a retry was initiated, false if retries are exhausted or not applicable.
+     */
+    suspend fun restartPlaybackWithFallback(startPosition: Duration): Boolean {
+        val currentMediaSource = getCurrentMediaSourceOrNull() as? RemoteJellyfinMediaSource ?: return false
+
+        val now = System.currentTimeMillis()
+        if (playbackRetries > 0 && now - lastPlaybackError > PLAYBACK_RETRY_RESET_MS) {
+            Timber.i("Playback stabilized, resetting retry count from %d", playbackRetries)
+            playbackRetries = 0
+        }
+
+        playbackRetries++
+        lastPlaybackError = now
+
+        if (playbackRetries > MAX_PLAYBACK_RETRIES) return false
+
+        Timber.i("Retrying playback (attempt %d of %d)", playbackRetries, MAX_PLAYBACK_RETRIES)
+
+        // If already transcoding, only retry once (for transient errors); flags are null on
+        // retry 1 anyway, so no special-casing needed in the startRemotePlayback call.
+        if (currentMediaSource.playMethod == PlayMethod.TRANSCODE && playbackRetries > 1) return false
+
+        return startRemotePlayback(
+            itemId = currentMediaSource.itemId,
+            mediaSourceId = currentMediaSource.id,
+            maxStreamingBitrate = currentMediaSource.maxStreamingBitrate,
+            startTime = startPosition,
+            audioStreamIndex = currentMediaSource.selectedAudioStreamIndex,
+            subtitleStreamIndex = currentMediaSource.selectedSubtitleStreamIndex,
+            playWhenReady = true,
+            enableDirectPlay = if (playbackRetries > 1) false else null,
+            enableDirectStream = if (playbackRetries > 2) false else null,
+        ) == null
     }
 
     /**
@@ -217,6 +273,8 @@ class QueueManager(
 
         val currentMediaSource = getCurrentMediaSourceOrNull() as? RemoteJellyfinMediaSource ?: return false
 
+        resetPlaybackFallback()
+
         startRemotePlayback(
             itemId = currentQueue[--currentQueueIndex],
             mediaSourceId = null,
@@ -227,6 +285,8 @@ class QueueManager(
 
     suspend fun next(): Boolean {
         if (!hasNext()) return false
+
+        resetPlaybackFallback()
 
         when (val currentMediaSource = getCurrentMediaSourceOrNull()) {
             is LocalJellyfinMediaSource -> startDownloadPlayback(
@@ -256,12 +316,8 @@ class QueueManager(
     }
 
     private fun prepareStreams(source: RemoteJellyfinMediaSource): MediaSource {
-        val videoSource = createVideoMediaSource(source)
-        val subtitleSources = createExternalSubtitleMediaSources(source)
-        return when {
-            subtitleSources.isNotEmpty() -> MergingMediaSource(videoSource, *subtitleSources)
-            else -> videoSource
-        }
+        val subtitleConfigurations = createExternalSubtitleMediaSources(source)
+        return createVideoMediaSource(source, subtitleConfigurations)
     }
 
     /**
@@ -271,9 +327,12 @@ class QueueManager(
      * @return A [MediaSource]. The type of MediaSource depends on the playback method/protocol.
      */
     @CheckResult
-    private fun createVideoMediaSource(source: JellyfinMediaSource): MediaSource {
+    private fun createVideoMediaSource(
+        source: JellyfinMediaSource,
+        externalSubtitleConfigurations: List<MediaItem.SubtitleConfiguration>
+    ): MediaSource {
         val sourceInfo = source.sourceInfo
-        val (url, factory) = when (source.playMethod) {
+        val (url, forcedMimeType) = when (source.playMethod) {
             PlayMethod.DIRECT_PLAY -> {
                 when (sourceInfo.protocol) {
                     MediaProtocol.FILE -> {
@@ -285,13 +344,12 @@ class QueueManager(
                             deviceId = apiClient.deviceInfo.id,
                         )
 
-                        url to get<ProgressiveMediaSource.Factory>()
+                        url to null
                     }
                     MediaProtocol.HTTP -> {
                         val url = requireNotNull(sourceInfo.path)
-                        val factory = get<HlsMediaSource.Factory>().setAllowChunklessPreparation(true)
 
-                        url to factory
+                        url to MimeTypes.APPLICATION_M3U8
                     }
                     else -> throw IllegalArgumentException("Unsupported protocol ${sourceInfo.protocol}")
                 }
@@ -306,22 +364,26 @@ class QueueManager(
                     deviceId = apiClient.deviceInfo.id,
                 )
 
-                url to get<ProgressiveMediaSource.Factory>()
+                url to null
             }
             PlayMethod.TRANSCODE -> {
                 val transcodingPath = requireNotNull(sourceInfo.transcodingUrl) { "Missing transcode URL" }
                 val protocol = sourceInfo.transcodingSubProtocol
                 require(protocol == MediaStreamProtocol.HLS) { "Unsupported transcode protocol '$protocol'" }
                 val transcodingUrl = apiClient.createUrl(transcodingPath)
-                val factory = get<HlsMediaSource.Factory>().setAllowChunklessPreparation(true)
 
-                transcodingUrl to factory
+                transcodingUrl to MimeTypes.APPLICATION_M3U8
             }
         }
+
+        // DefaultMediaSourceFactory
+        val factory = get<MediaSource.Factory>()
 
         val mediaItem = MediaItem.Builder()
             .setMediaId(source.itemId.toString())
             .setUri(url)
+            .setMimeType(forcedMimeType)
+            .setSubtitleConfigurations(externalSubtitleConfigurations)
             .build()
 
         return factory.createMediaSource(mediaItem)
@@ -336,23 +398,21 @@ class QueueManager(
     @CheckResult
     private fun createExternalSubtitleMediaSources(
         source: JellyfinMediaSource,
-    ): Array<MediaSource> {
-        val factory = get<SingleSampleMediaSource.Factory>()
+    ): List<MediaItem.SubtitleConfiguration> {
         return source.externalSubtitleStreams.map { stream ->
             val uri = apiClient.createUrl(stream.deliveryUrl).toUri()
-            val mediaItem = MediaItem.SubtitleConfiguration.Builder(uri).apply {
+            MediaItem.SubtitleConfiguration.Builder(uri).apply {
                 setId("${ExternalSubtitleStream.ID_PREFIX}${stream.index}")
                 setLabel(stream.displayTitle)
                 setMimeType(stream.mimeType)
                 setLanguage(stream.language)
             }.build()
-            factory.createMediaSource(mediaItem, source.runTime.inWholeMilliseconds)
-        }.toTypedArray()
+        }.toList()
     }
 
     @CheckResult
     private fun createDownloadVideoMediaSource(mediaSourceId: String, fileUri: Uri): MediaSource {
-        val mediaSourceFactory: ProgressiveMediaSource.Factory = get()
+        val factory: MediaSource.Factory = get()
 
         val mediaItem = MediaItem.Builder()
             .setMediaId(mediaSourceId)
@@ -360,7 +420,7 @@ class QueueManager(
             .setCustomCacheKey(fileUri.toString())
             .build()
 
-        return mediaSourceFactory.createMediaSource(mediaItem)
+        return factory.createMediaSource(mediaItem)
     }
 
     /**
@@ -371,6 +431,7 @@ class QueueManager(
     suspend fun selectAudioStreamAndRestartPlayback(stream: MediaStream): Boolean {
         require(stream.type == MediaStreamType.AUDIO)
         val currentPlayState = viewModel.getStateAndPause() ?: return false
+        resetPlaybackFallback()
 
         when (val currentMediaSource = getCurrentMediaSourceOrNull()) {
             is LocalJellyfinMediaSource -> startDownloadPlayback(
@@ -404,6 +465,7 @@ class QueueManager(
     suspend fun selectSubtitleStreamAndRestartPlayback(stream: MediaStream?): Boolean {
         require(stream == null || stream.type == MediaStreamType.SUBTITLE)
         val currentPlayState = viewModel.getStateAndPause() ?: return false
+        resetPlaybackFallback()
 
         when (val mediaSource = getCurrentMediaSourceOrNull()) {
             is LocalJellyfinMediaSource -> startDownloadPlayback(
@@ -425,5 +487,10 @@ class QueueManager(
             null -> return false
         }
         return true
+    }
+
+    companion object {
+        private const val MAX_PLAYBACK_RETRIES = 3
+        private const val PLAYBACK_RETRY_RESET_MS = 30_000L
     }
 }

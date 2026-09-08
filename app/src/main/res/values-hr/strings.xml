@@ -101,7 +101,6 @@
     <string name="button_use_different_server">Koristi drugi poslužitelj</string>
     <string name="menu_item_hardware_decoding">Hardversko Dekodiranje</string>
     <string name="menu_item_software_decoding">Softversko Dekodiranje</string>
-    <string name="pref_exoplayer_direct_play_ass_summary">Nemoj dopusiti transkodiranje i prikaži titlove samo s jednostavnim stiliziranjem. Napredno stiliziranje titlova neće biti dostupno ukoliko je ova opcija uključena.</string>
     <string name="pref_subtitle_style_summary">Možete promijeniti stil titlova u Androidovim postavkama</string>
     <string name="bluetooth_permission_title">Dozvoli pristup Bluetoothu\?</string>
     <string name="bluetooth_permission_message">Da bi detektirali kada su bežične slušalice ili zvučnici odspojeni, aplikacija zahtjeva pristup Bluetoothu. U Androidu, ova dozvola je opisana kao pristup bliskim uređajima, i upozorava da Bluetooth uređaji mogu biti korišteni da bi zaključili trenutnu lokaciju. Međutim, Jellyfin aplikacija nikad neće koristiti ovu dozvolu za otkriti vašu lokaciju.</string>
@@ -129,4 +128,7 @@
     <string name="tv_show_desc">%1$s - S%2$dE%3$d</string>
     <string name="downloading_desc">Preuzimanje %1$d naslova</string>
     <string name="downloaded">Preuzeto %1$s</string>
+    <string name="media_service_unknown_page">Nepoznata stranica</string>
+    <string name="media_service_no_items">Nema pronađenih stavki</string>
+    <string name="media_service_auth_expired">Otvorite aplikaciju na svom telefonu za prijavu na svoj Jellyfin poslužitelj.</string>
 </resources>
