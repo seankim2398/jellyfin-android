@@ -13,11 +13,13 @@ class QualityOptionsProvider {
         QualityOption(maxHeight = 1080, bitrate = 20000000),
         QualityOption(maxHeight = 1080, bitrate = 15000000),
         QualityOption(maxHeight = 1080, bitrate = 10000000),
-        QualityOption(maxHeight = 720, bitrate = 8000000),
-        QualityOption(maxHeight = 720, bitrate = 6000000),
-        QualityOption(maxHeight = 720, bitrate = 4000000),
-        QualityOption(maxHeight = 480, bitrate = 3000000),
-        QualityOption(maxHeight = 480, bitrate = 1500000),
+        QualityOption(maxHeight = 1080, bitrate = 8000000), // replaces 720p - 8 Mbps
+        QualityOption(maxHeight = 1080, bitrate = 6000000), // replaces 720p - 6 Mbps
+        QualityOption(maxHeight = 1080, bitrate = 4000000), // replaces 720p - 4 Mbps
+        QualityOption(maxHeight = 1080, bitrate = 3000000), // replaces 480p - 3 Mbps
+        QualityOption(maxHeight = 1080, bitrate = 2000000), // new
+        QualityOption(maxHeight = 720, bitrate = 1500000), // replaces 480p - 1.5 Mbps
+        QualityOption(maxHeight = 720, bitrate = 1000000), // new
         QualityOption(maxHeight = 480, bitrate = 720000),
         QualityOption(maxHeight = 360, bitrate = 420000),
         QualityOption(maxHeight = 0, bitrate = 0), // auto
@@ -41,6 +43,7 @@ class QualityOptionsProvider {
             else -> 360
         }
 
-        return defaultQualityOptions.takeLastWhile { option -> option.maxHeight <= maxAllowedHeight }
+        // was: return defaultQualityOptions.takeLastWhile { option -> option.maxHeight <= maxAllowedHeight }
+        return defaultQualityOptions.filter { option -> option.maxHeight <= maxAllowedHeight }
     }
 }
