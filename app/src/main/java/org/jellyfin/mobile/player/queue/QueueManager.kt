@@ -99,7 +99,7 @@ class QueueManager(
             else -> startRemotePlayback(
                 itemId = itemId,
                 mediaSourceId = playOptions.mediaSourceId,
-                maxStreamingBitrate = maxStreamingBitrate,
+                maxStreamingBitrate = null, // fork: ignore the web app's saved bitrate (Auto can save a tiny speed-test result)
                 startTime = playOptions.startPosition,
                 audioStreamIndex = playOptions.audioStreamIndex,
                 subtitleStreamIndex = playOptions.subtitleStreamIndex,

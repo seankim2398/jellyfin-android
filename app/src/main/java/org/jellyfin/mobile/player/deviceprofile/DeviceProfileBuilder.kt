@@ -176,7 +176,7 @@ class DeviceProfileBuilder(
             type = DlnaProfileType.VIDEO,
             container = "mp4",
             videoCodec = orderVideoCodecs(DEFAULT_VIDEO_CODEC_PRIORITY),
-            audioCodec = "mp1,mp2,mp3,aac,ac3,eac3,dts,mlp,truehd",
+            audioCodec = "aac,mp1,mp2,mp3,ac3,eac3,dts,mlp,truehd",
             protocol = MediaStreamProtocol.HLS,
             conditions = emptyList(),
         ),
