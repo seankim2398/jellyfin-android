@@ -17,7 +17,7 @@ class QualityOptionsProvider {
         QualityOption(maxHeight = 1080, bitrate = 6000000), // replaces 720p - 6 Mbps
         QualityOption(maxHeight = 1080, bitrate = 4000000), // replaces 720p - 4 Mbps
         QualityOption(maxHeight = 1080, bitrate = 3000000), // replaces 480p - 3 Mbps
-        QualityOption(maxHeight = 1080, bitrate = 2000000), // new
+        QualityOption(maxHeight = 720, bitrate = 2000000), // new
         QualityOption(maxHeight = 720, bitrate = 1500000), // replaces 480p - 1.5 Mbps
         QualityOption(maxHeight = 720, bitrate = 1000000), // new
         QualityOption(maxHeight = 480, bitrate = 720000),
